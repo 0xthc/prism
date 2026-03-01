@@ -115,6 +115,16 @@ const MOCK_PRODUCTS = [
     date_spotted: '2026-02-25',
     pmf_flag: '',
   },
+  {
+    id: 11,
+    name: 'Temple',
+    category: 'Health & Fitness',
+    differentiation: 'Brain-monitoring wearable that converts EEG data into real-time cognitive performance signals — Oura Ring for your mind. Founded by Deepinder Goyal (Zomato co-founder). $54M F&F at $190M post-money.',
+    sources: ['Press', 'Newsletter'],
+    source_detail: 'Morning Digest · Consumer VC',
+    date_spotted: '2026-02-28',
+    pmf_flag: 'Watch',
+  },
 ]
 
 const CATEGORY_STYLES = {
