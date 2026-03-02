@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 
-const TABS = ['Signals', 'Shifts', 'Market', 'Notes']
+const TABS = ['Signals', 'Shifts', 'Patterns', 'Market', 'Notes']
 
 const CATEGORIES = [
   'Food & Drink',
@@ -171,10 +171,265 @@ function App() {
           ))}
         </div>
       </nav>
-      {activeTab === 'Signals' && <SignalsTab />}
-      {activeTab === 'Shifts'  && <ShiftsTab />}
-      {activeTab === 'Market'  && <Placeholder title="Market"  subtitle="Consumer deal flow, category heat maps, funding pulse." />}
-      {activeTab === 'Notes'   && <Placeholder title="Notes"   subtitle="Your field observations and consumer market notes." />}
+      {activeTab === 'Signals'  && <SignalsTab />}
+      {activeTab === 'Shifts'   && <ShiftsTab />}
+      {activeTab === 'Patterns' && <PatternsTab />}
+      {activeTab === 'Market'   && <Placeholder title="Market"  subtitle="Consumer deal flow, category heat maps, funding pulse." />}
+      {activeTab === 'Notes'    && <Placeholder title="Notes"   subtitle="Your field observations and consumer market notes." />}
+    </div>
+  )
+}
+
+// ── Patterns data ─────────────────────────────────────────────────
+
+const PATTERNS = [
+  {
+    id: 1,
+    name: 'Functional Ingredient Premiumization',
+    category: 'Beauty',
+    status: 'Established',
+    thesis: 'Consumers pay a premium for named, credentialed ingredients — the ingredient IS the brand. Works in any category where incumbents hide their formula.',
+    signals: [
+      { label: 'Bakuchiol Serum', src: 'Shifts', detail: '+173%, 60.5K/mo searches — plant-based retinol rivals retinol on volume' },
+      { label: 'Niacinamide Body Lotion', src: 'Shifts', detail: '+1,450% (5yr) — skincare ingredient era migrating from face to body' },
+      { label: 'Beet Gummies', src: 'Shifts', detail: '+956% — ingredient credentialing entering functional food (beets = heart + performance)' },
+      { label: 'Mushroom Chocolate', src: 'Shifts', detail: '+171% — adaptogen credentialing in confectionery' },
+    ],
+    implication: 'Brand identity built around a single hero ingredient outperforms brand identity built around a benefit claim. The ingredient becomes the vocabulary. Look for categories still running benefit language (\"reduces stress\", \"boosts energy\") — they haven\'t been flipped yet.',
+    watchFor: 'Next categories: haircare (peptides), mens grooming (ceramides), functional beverages (electrolytes by source)',
+  },
+  {
+    id: 2,
+    name: 'Emotional Brand Architecture in Dead CPG',
+    category: 'Food & Drink',
+    status: 'Forming',
+    thesis: 'Commoditized CPG categories running on fear or performance messaging are ripe for an emotional reframe. The job-to-be-done is identity signaling, not product utility.',
+    signals: [
+      { label: 'Happy (coffee)', src: 'Signals', detail: 'Craig Dubitsky + RDJ — repositioning coffee as happiness delivery, NAMI equity stake, mental health on packaging' },
+      { label: 'Hello Products (oral care)', src: 'Newsletter', detail: 'Renamed the category with one word — Colgate acquired. Same playbook: fear messaging → friendliness' },
+      { label: 'Smoothie King trending', src: 'Shifts', detail: 'Trending #7 organically on X — functional beverage with emotional community angle' },
+    ],
+    implication: 'Categories still running on fear: deodorant (protect from embarrassment), vitamins (prevent illness), pet food (guilt), cleaning products (germ anxiety). Any of these is a candidate. The structural move is mission alignment (equity stake, not sponsorship) — Gen Z reads the difference.',
+    watchFor: 'Vitamin brand with mental health integration, deodorant brand with body-positive mission baked into ownership structure',
+  },
+  {
+    id: 3,
+    name: 'Quantified Self 2.0 — Actionable Biomarkers',
+    category: 'Health & Fitness',
+    status: 'Emerging',
+    thesis: 'First-gen wearables measured passively (steps, sleep hours). Second-gen measures biomarkers that drive decisions — EEG, gut microbiome, urology. The PMF test: does the data change what you do tomorrow?',
+    signals: [
+      { label: 'Temple (neurotech wearable)', src: 'Press', detail: '$54M F&F round at $190M post — Deepinder Goyal (Zomato) — EEG cognitive performance monitoring' },
+      { label: 'Throne (gut health wearable)', src: 'Newsletter', detail: 'At-home gut health + urological + hydration monitoring. Category-defining form factor.' },
+      { label: 'Tiny Health (infant microbiome)', src: 'Newsletter', detail: 'At-home microbiome testing for infants — parental anxiety meets precision health' },
+    ],
+    implication: 'The wedge is always one specific biomarker (brain waves, gut bacteria, glucose) in one specific population (athletes, new parents, aging adults). General wellness wearables are crowded. Vertical specificity wins. Data without protocol is noise — the product has to close the loop.',
+    watchFor: 'HRV-to-action (not just measurement), female hormone tracking with dosing recommendations, longevity biomarkers for 35-50 demographic',
+  },
+  {
+    id: 4,
+    name: 'Mental Health as Purchase Criterion',
+    category: 'Health & Fitness',
+    status: 'Established',
+    thesis: 'Post-pandemic, emotional wellness has been permanently mainstreamed as a purchasing signal. Gen Z expects brands to be structural stakeholders in wellbeing — not just donors.',
+    signals: [
+      { label: 'Happy × NAMI equity', src: 'Newsletter', detail: 'NAMI gets equity (not sponsorship) in Happy coffee — structural mission vs. cause marketing' },
+      { label: '#Hearts2Hearts on TikTok', src: 'Shifts', detail: '49K posts — confessional relationship/self-love content converting to community for wellness brands' },
+      { label: 'Bakuchiol "gentleness" positioning', src: 'Shifts', detail: 'Plant-based retinol wins on gentleness narrative — safety and kindness as emotional cues' },
+      { label: 'Destigmatization as baseline', src: 'Newsletter', detail: 'Therapy-coded language now mainstream — Gen Z baseline assumption, not differentiator' },
+    ],
+    implication: 'The signal to track is structural mission alignment — does the brand give equity, board seats, or revenue share to the cause? Cause marketing (% of sales, PR partnerships) no longer converts. Founders who are personally connected to the issue outperform.',
+    watchFor: 'Addiction recovery brands, ADHD consumer products, loneliness-coded social apps with community economics built in',
+  },
+  {
+    id: 5,
+    name: 'Convenience × Sustainability Convergence',
+    category: 'Lifestyle',
+    status: 'Emerging',
+    thesis: 'Products that resolve the convenience/sustainability tension in one format unlock a premium consumer who doesn\'t want to choose. The format innovation IS the moat.',
+    signals: [
+      { label: 'Disposable Period Underwear', src: 'Shifts', detail: '+562%, 9.9K/mo — convenience + sustainable materials in one format, strong repeat purchase mechanics' },
+      { label: 'Bamboo Baby Pajamas', src: 'Shifts', detail: '+617% — eco-parenting category with premium pricing, loyal repeat buyers' },
+    ],
+    implication: 'The consumer is not eco-anxious — they\'re convenience-maximizing with a preference for not feeling guilty. The product has to lead with the convenience story. Sustainability is the permission structure, not the pitch. Look for categories with high repeat purchase and high guilt (single-use baby items, feminine care, food packaging).',
+    watchFor: 'Single-use travel items in sustainable format, eco-convenience in the baby category, plant-based single-use foodservice',
+  },
+  {
+    id: 6,
+    name: 'Cultural Calendar Commerce',
+    category: 'Food & Drink',
+    status: 'Forming',
+    thesis: 'Authentic cultural calendar moments (Ramadan, Lunar New Year, Diwali) now drive mainstream consumer behavior — brands that show up credibly in-moment with community buy-in outperform paid campaigns.',
+    signals: [
+      { label: '#iftar on TikTok', src: 'Shifts', detail: '118K posts — Ramadan food content mainstream, not niche. F&B, hospitality, beauty all relevant.' },
+      { label: 'Zendaya × Awards Season', src: 'Shifts', detail: 'Celebrity cultural moment = brand activation window. Timing to cultural calendar outperforms evergreen content.' },
+    ],
+    implication: 'The brand has to have authentic community stake before the moment — you can\'t parachute in. The opportunity is building the brand year-round with the community, then activating during the moment. For investors: any brand with genuine multicultural founder-market fit has a calendar advantage that mainstream brands can\'t buy.',
+    watchFor: 'Halal-certified functional foods, Lunar New Year limited edition strategy with equity community, South Asian wedding beauty',
+  },
+  {
+    id: 7,
+    name: 'The Anti-Silhouette Cycle',
+    category: 'Fashion',
+    status: 'Established',
+    thesis: 'Fashion resets on silhouette roughly every 8-10 years. The inflection point creates a replacement purchase cycle across the entire wardrobe. Brands that own the new silhouette early win disproportionately.',
+    signals: [
+      { label: 'Barrel Fit Jeans', src: 'Shifts', detail: '+99x growth — wide thigh, tapered ankle. The anti-skinny-jean moment. Brands not in barrel denim are dressing last season\'s customer.' },
+    ],
+    implication: 'Silhouette shifts create forced replacement cycles — you can\'t just hem your old jeans. The brand that defines the new silhouette\'s name and aesthetic wins the SEO and retail positioning battle. Look for DTC denim brands already building barrel-forward identity.',
+    watchFor: 'Next silhouette signal in menswear (currently lagging womenswear by 18-24 months), shirting silhouette shift (boxy/relaxed), footwear transition from chunky to refined',
+  },
+]
+
+const STATUS_STYLES = {
+  'Established': { bg: '#e8f5e9', color: '#2e7d32' },
+  'Forming':     { bg: '#fff3e0', color: '#bf5000' },
+  'Emerging':    { bg: '#e3f2fd', color: '#1565c0' },
+  'Watching':    { bg: '#f4f4f1', color: '#555' },
+}
+
+const SRC_STYLES = {
+  'Shifts':      { bg: '#f3e5f5', color: '#7b1fa2' },
+  'Signals':     { bg: '#e8f5e9', color: '#2e7d32' },
+  'Press':       { bg: '#e3f2fd', color: '#1565c0' },
+  'Newsletter':  { bg: '#fff3e0', color: '#bf5000' },
+}
+
+function PatternsTab() {
+  const [selected, setSelected] = useState(null)
+  const [catFilter, setCatFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('All')
+
+  const categories = ['All', ...Array.from(new Set(PATTERNS.map(p => p.category)))]
+  const statuses   = ['All', 'Established', 'Forming', 'Emerging']
+
+  const visible = useMemo(() => PATTERNS.filter(p =>
+    (catFilter === 'All' || p.category === catFilter) &&
+    (statusFilter === 'All' || p.status === statusFilter)
+  ), [catFilter, statusFilter])
+
+  const active = selected ? PATTERNS.find(p => p.id === selected) : null
+
+  return (
+    <div className="signals-wrap" style={{ display: 'flex', gap: 0, padding: 0, alignItems: 'stretch', height: 'calc(100vh - 48px)' }}>
+      {/* Left panel */}
+      <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid #e8e8e5', overflowY: 'auto', padding: '20px 16px' }}>
+        <div style={{ marginBottom: 16 }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700 }}>Patterns</h1>
+          <div style={{ fontSize: 11, color: '#888' }}>Consumer thesis clusters — recurring signals across categories</div>
+        </div>
+
+        {/* Filters */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 9, color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Status</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {statuses.map(s => {
+              const ss = STATUS_STYLES[s] || {}
+              const active = statusFilter === s
+              return (
+                <button key={s} onClick={() => setStatusFilter(s)} style={{
+                  padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                  border: active ? 'none' : '1px solid #e0e0dc',
+                  background: active ? (ss.bg || '#1a1a1a') : '#fff',
+                  color: active ? (ss.color || '#fff') : '#666',
+                }}>{s}</button>
+              )
+            })}
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 9, color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Category</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {categories.map(c => {
+              const cs = CATEGORY_STYLES[c] || {}
+              const isActive = catFilter === c
+              return (
+                <button key={c} onClick={() => setCatFilter(c)} style={{
+                  padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                  border: isActive ? 'none' : '1px solid #e0e0dc',
+                  background: isActive ? (cs.bg || '#1a1a1a') : '#fff',
+                  color: isActive ? (cs.color || '#fff') : '#666',
+                }}>{c}</button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Pattern list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {visible.map(p => {
+            const ss = STATUS_STYLES[p.status] || {}
+            const cs = CATEGORY_STYLES[p.category] || {}
+            const isSelected = selected === p.id
+            return (
+              <div key={p.id} onClick={() => setSelected(isSelected ? null : p.id)} style={{
+                background: isSelected ? '#fafaf8' : '#fff',
+                border: isSelected ? '1.5px solid #1a1a1a' : '1px solid #e8e8e5',
+                borderRadius: 10, padding: '11px 13px', cursor: 'pointer',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a', lineHeight: 1.3, flex: 1 }}>{p.name}</div>
+                  <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 7px', borderRadius: 20, marginLeft: 6, flexShrink: 0, background: ss.bg, color: ss.color }}>{p.status}</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, marginBottom: 6 }}>{p.thesis}</div>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                  <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 20, background: cs.bg, color: cs.color, fontWeight: 600 }}>{p.category}</span>
+                  <span style={{ fontSize: 10, color: '#aaa' }}>{p.signals.length} signals</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Right panel — detail */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 28px' }}>
+        {!active ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#bbb', fontSize: 13 }}>
+            Select a pattern to explore
+          </div>
+        ) : (
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: STATUS_STYLES[active.status]?.bg, color: STATUS_STYLES[active.status]?.color, fontWeight: 700 }}>{active.status}</span>
+              <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: CATEGORY_STYLES[active.category]?.bg, color: CATEGORY_STYLES[active.category]?.color, fontWeight: 600 }}>{active.category}</span>
+            </div>
+            <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.3 }}>{active.name}</h2>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#444', lineHeight: 1.7 }}>{active.thesis}</p>
+
+            {/* Signals */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 10 }}>Supporting signals</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {active.signals.map((s, i) => {
+                  const ss = SRC_STYLES[s.src] || SRC_STYLES['Newsletter']
+                  return (
+                    <div key={i} style={{ background: '#fafaf8', borderRadius: 8, padding: '10px 13px', border: '1px solid #e8e8e5' }}>
+                      <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a' }}>{s.label}</span>
+                        <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 20, background: ss.bg, color: ss.color, fontWeight: 600 }}>{s.src}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>{s.detail}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Implication */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 8 }}>Investment implication</div>
+              <p style={{ margin: 0, fontSize: 12, color: '#333', lineHeight: 1.7, background: '#f8f8f6', borderRadius: 8, padding: '12px 14px', borderLeft: '3px solid #1a1a1a' }}>{active.implication}</p>
+            </div>
+
+            {/* Watch for */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 8 }}>Watch for next</div>
+              <p style={{ margin: 0, fontSize: 12, color: '#666', lineHeight: 1.6, fontStyle: 'italic' }}>{active.watchFor}</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
