@@ -172,7 +172,7 @@ function App() {
         </div>
       </nav>
       {activeTab === 'Signals' && <SignalsTab />}
-      {activeTab === 'Shifts'  && <Placeholder title="Shifts"  subtitle="Category movements — ingredient shifts, new usage paradigms, EU early signals." />}
+      {activeTab === 'Shifts'  && <ShiftsTab />}
       {activeTab === 'Market'  && <Placeholder title="Market"  subtitle="Consumer deal flow, category heat maps, funding pulse." />}
       {activeTab === 'Notes'   && <Placeholder title="Notes"   subtitle="Your field observations and consumer market notes." />}
     </div>
@@ -327,6 +327,201 @@ function ProductCard({ product, onSetFlag }) {
           })}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Shifts data ────────────────────────────────────────────────────
+
+const SHIFTS_DATA = {
+  week: 'March 2, 2026',
+  social_pulse: [
+    {
+      id: 1,
+      platform: 'X',
+      name: 'Smoothie King',
+      type: 'Brand',
+      signal: 'Trending #7 organically — rare for a QSR wellness brand. Signals viral campaign or cultural moment. Functional drink category heating up in Q1.',
+      category: 'Food & Drink',
+    },
+    {
+      id: 2,
+      platform: 'X',
+      name: 'Suki',
+      type: 'Beauty',
+      signal: 'Trending 18hrs — beauty brand or influencer gaining rapid traction organically. Category signal worth watching.',
+      category: 'Beauty',
+    },
+    {
+      id: 3,
+      platform: 'TikTok',
+      name: '#iftar',
+      type: 'Food',
+      signal: '118K posts. Ramadan food content mainstream, not niche. F&B, hospitality, and beauty (evening self-care) have a clear window to show up authentically.',
+      category: 'Food & Drink',
+    },
+    {
+      id: 4,
+      platform: 'TikTok',
+      name: '#Tan',
+      type: 'Beauty',
+      signal: '37K posts, jumped 8 spots. Sunless tanning surging from spring body content. Self-tanning drop-routine format converting. Beauty brands with tanning SKUs should push creator partnerships now.',
+      category: 'Beauty',
+    },
+  ],
+  rising_trends: [
+    {
+      id: 1,
+      name: 'Niacinamide Body Lotion',
+      category: 'Beauty',
+      growth: '+1,450% (5yr)',
+      volume: '5.4K/mo',
+      type: 'Ingredient shift',
+      insight: 'Skincare\'s ingredient era has migrated from face to body. Olay, CeraVe, The INKEY List are already there. Any body care brand without a niacinamide SKU is leaving shelf space on the table.',
+    },
+    {
+      id: 2,
+      name: 'Bakuchiol Serum',
+      category: 'Beauty',
+      growth: '+173%',
+      volume: '60.5K/mo',
+      type: 'Ingredient shift',
+      insight: 'Plant-based retinol now rivals retinol in search volume. Still indie enough to build brand identity around. The "gentler retinol" story converts hard — sensitivity-first skincare is a durable positioning.',
+    },
+    {
+      id: 3,
+      name: 'Beet Gummies',
+      category: 'Health & Fitness',
+      growth: '+956%',
+      volume: '5.4K/mo',
+      type: 'Ingredient shift',
+      insight: 'Exploding under the radar. Beets = heart health + natural sports performance. Crossroads of functional food and supplements. Low competition, launchable for any brand in women\'s wellness or sports recovery.',
+    },
+    {
+      id: 4,
+      name: 'Barrel Fit Jeans',
+      category: 'Fashion',
+      growth: '+99x',
+      volume: null,
+      type: 'Silhouette shift',
+      insight: 'The anti-skinny-jean moment is here. Wide thigh, tapered ankle. The silhouette of 2026 — brands not creating content around barrel denim are dressing last season\'s customer.',
+    },
+    {
+      id: 5,
+      name: 'Disposable Period Underwear',
+      category: 'Health & Fitness',
+      growth: '+562%',
+      volume: '9.9K/mo',
+      type: 'New category',
+      insight: 'Convenience + sustainability in one format. A new category forming in real time. Strong DTC story with repeat purchase mechanics built in.',
+    },
+    {
+      id: 6,
+      name: 'Mushroom Chocolate',
+      category: 'Food & Drink',
+      growth: '+171%',
+      volume: null,
+      type: 'Ingredient shift',
+      insight: 'Functional indulgence is not slowing down. Adaptogens meeting confectionery — the consumer wants health benefits without sacrifice.',
+    },
+  ],
+}
+
+const SHIFT_TYPE_STYLES = {
+  'Ingredient shift': { bg: '#e8f5e9', color: '#2e7d32' },
+  'Silhouette shift': { bg: '#f3e5f5', color: '#7b1fa2' },
+  'New category':     { bg: '#e3f2fd', color: '#1565c0' },
+  'Food':             { bg: '#fff3e0', color: '#bf5000' },
+  'Beauty':           { bg: '#fce4ec', color: '#c2185b' },
+  'Brand':            { bg: '#e8eaf6', color: '#3949ab' },
+}
+
+const PLATFORM_STYLES = {
+  'X':       { bg: '#1a1a1a', color: '#fff' },
+  'TikTok':  { bg: '#010101', color: '#ff0050' },
+}
+
+function ShiftsTab() {
+  const [section, setSection] = useState('Trends')
+
+  return (
+    <div className="signals-wrap">
+      <div className="signals-header">
+        <div>
+          <h1>Shifts</h1>
+          <div className="shifts-week">Week of {SHIFTS_DATA.week}</div>
+        </div>
+        <div className="view-toggle">
+          {['Trends', 'Social Pulse'].map(s => (
+            <button
+              key={s}
+              className={`filter-btn${section === s ? ' active' : ''}`}
+              onClick={() => setSection(s)}
+              type="button"
+            >{s}</button>
+          ))}
+        </div>
+      </div>
+
+      {section === 'Trends' && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{SHIFTS_DATA.rising_trends.length}</strong> rising trends</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{SHIFTS_DATA.rising_trends.filter(t => t.type === 'Ingredient shift').length}</strong> ingredient shifts</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{SHIFTS_DATA.rising_trends.filter(t => t.type === 'New category').length}</strong> new categories</span>
+          </div>
+          <div className="product-grid">
+            {SHIFTS_DATA.rising_trends.map(trend => {
+              const catStyle = CATEGORY_STYLES[trend.category] || { bg: '#f4f4f1', color: '#555' }
+              const typeStyle = SHIFT_TYPE_STYLES[trend.type] || { bg: '#f4f4f1', color: '#555' }
+              return (
+                <div key={trend.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color }}>{trend.category}</span>
+                      <h3 className="product-name">{trend.name}</h3>
+                    </div>
+                    <span className="cat-badge" style={{ background: typeStyle.bg, color: typeStyle.color, flexShrink: 0 }}>{trend.type}</span>
+                  </div>
+                  <div className="shifts-metrics">
+                    {trend.growth && <span className="metric-pill metric-growth">{trend.growth}</span>}
+                    {trend.volume && <span className="metric-pill metric-volume">{trend.volume} searches/mo</span>}
+                  </div>
+                  <p className="differentiation">{trend.insight}</p>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {section === 'Social Pulse' && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{SHIFTS_DATA.social_pulse.length}</strong> signals this week</span>
+          </div>
+          <div className="product-grid">
+            {SHIFTS_DATA.social_pulse.map(item => {
+              const catStyle = CATEGORY_STYLES[item.category] || { bg: '#f4f4f1', color: '#555' }
+              const platStyle = PLATFORM_STYLES[item.platform] || { bg: '#f4f4f1', color: '#555' }
+              return (
+                <div key={item.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      <span className="cat-badge" style={{ background: platStyle.bg, color: platStyle.color }}>{item.platform}</span>
+                      <h3 className="product-name">{item.name}</h3>
+                    </div>
+                    <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color, flexShrink: 0 }}>{item.category}</span>
+                  </div>
+                  <p className="differentiation">{item.signal}</p>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

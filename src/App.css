@@ -260,3 +260,26 @@ button, input, select, textarea { font: inherit; }
 
 .pmf-btn:hover:not(.active) { border-color: #aaa; color: #444; }
 .pmf-btn.active { font-weight: 600; }
+
+/* Shifts tab */
+.shifts-week {
+  font-size: 12px;
+  color: #888;
+  margin-top: 3px;
+}
+
+.shifts-metrics {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.metric-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.metric-growth { background: #e8f5e9; color: #2e7d32; }
+.metric-volume  { background: #f4f4f1; color: #555; }
