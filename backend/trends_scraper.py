@@ -32,10 +32,61 @@ GTRENDS_CATEGORIES = {
 }
 
 STAGE_MAP = {
-    "breakout": "emerging",   # >5000% growth = breakout
+    "breakout": "emerging",
     "rising":   "accelerating",
     "top":      "mainstream",
 }
+
+# Terms that indicate noise (celebrity names, sports, news events)
+NOISE_PATTERNS = [
+    # Sports
+    "vs ", " fc ", " city ", "inter miami", "nba", "nfl", "mlb", "nhl",
+    "game", "score", "match", "championship", "tournament", "playoffs",
+    # News/politics
+    "election", "president", "senator", "congress", "police", "shooting",
+    "earthquake", "hurricane", "storm", "weather",
+    # Generic illness (not consumer)
+    "norovirus", "als disease", "symptoms of ", "virus", "flu",
+    # Generic names without product context
+    "panarin", "artemi", "tommy paul", "stephen colletti", "wunmi",
+    "karen mulder", "miss j", "golden globes", "rj decker", "alexis ortega",
+    "pucci outfit",  # too celeb-specific unless we detect product
+]
+
+CONSUMER_SIGNAL_PATTERNS = [
+    # Ingredients & compounds
+    "acid", "serum", "retinol", "peptide", "vitamin", "collagen", "niacinamide",
+    "hyaluronic", "ceramide", "bakuchiol", "gummies", "mushroom", "adaptogen",
+    "probiotic", "prebiotic", "electrolyte", "creatine", "magnesium", "ashwagandha",
+    # Product formats
+    "balm", "cream", "lotion", "oil", "toner", "cleanser", "mask", "mist",
+    "supplement", "powder", "drink", "bar", "snack", "sauce", "dressing",
+    "protein", "collagen", "fiber", "whey",
+    # Categories
+    "sustainable", "organic", "clean", "natural", "vegan", "plant-based",
+    "functional", "wellness", "beauty", "skincare", "haircare", "bodycare",
+    "fashion", "jeans", "denim", "set", "outfit", "dress", "jacket",
+    "gut health", "sleep", "stress", "anxiety", "focus", "energy", "recovery",
+    # Consumer behaviors
+    "routine", "ritual", "habit", "morning", "night", "cycle",
+    "what is", "how to", "best ", "top ", "review",
+]
+
+def is_consumer_trend(term: str) -> bool:
+    term_lower = term.lower()
+    # Reject if noise pattern found
+    if any(noise in term_lower for noise in NOISE_PATTERNS):
+        return False
+    # Accept if consumer signal pattern found
+    if any(sig in term_lower for sig in CONSUMER_SIGNAL_PATTERNS):
+        return True
+    # Accept multi-word terms (more specific = more likely to be a product/ingredient)
+    if len(term.split()) >= 3:
+        return True
+    # Reject very short single-word terms unless in consumer signal list
+    if len(term.split()) == 1 and len(term) < 8:
+        return False
+    return True
 
 def classify_stage(value):
     """Google Trends returns 'Breakout' string or int % change."""
@@ -75,10 +126,13 @@ def scrape_google_trends():
                 time.sleep(2)
                 continue
 
-            for _, row in rising_df.head(15).iterrows():
+            for _, row in rising_df.head(20).iterrows():
                 term  = str(row.get("query", "")).strip()
                 value = row.get("value", 0)
                 if not term:
+                    continue
+                if not is_consumer_trend(term):
+                    log.info(f"  Filtered noise: {term}")
                     continue
 
                 stage   = classify_stage(value)
