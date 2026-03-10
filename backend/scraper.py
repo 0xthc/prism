@@ -45,6 +45,33 @@ CONSUMER_VC_FEEDS = [
     {"name": "Forerunner Blog", "url": "https://www.forerunnerventures.com/blog/feed"},
 ]
 
+# Substack feeds — tiered by signal quality
+SUBSTACK_FEEDS = [
+    # Tier 1 — Consumer-specific, must-reads
+    {"name": "Digital Native", "url": "https://digitalnative.substack.com/feed", "tier": 1,
+     "focus": "consumer × tech investment thesis", "author": "Rex Woodbury, Daybreak Ventures"},
+    {"name": "SignalFire Blog", "url": "https://signalfire.substack.com/feed", "tier": 1,
+     "focus": "consumer product trends, AI × consumer", "author": "Josh Constine"},
+
+    # Tier 2 — Broader but consumer-relevant
+    {"name": "Lenny's Newsletter", "url": "https://www.lennysnewsletter.com/feed", "tier": 2,
+     "focus": "consumer product mechanics, growth loops, retention", "author": "Lenny Rachitsky"},
+    {"name": "The Generalist", "url": "https://www.thegeneralist.io/feed", "tier": 2,
+     "focus": "category deep dives, company analysis", "author": "Mario Gabriele"},
+    {"name": "Newcomer", "url": "https://newcomer.substack.com/feed", "tier": 2,
+     "focus": "VC dealflow, firm intel", "author": "Eric Newcomer"},
+
+    # Tier 3 — Niche / operator perspective
+    {"name": "Venture Reflections", "url": "https://charleshudson.substack.com/feed", "tier": 3,
+     "focus": "early-stage consumer investing", "author": "Charles Hudson, Precursor"},
+    {"name": "The VC Corner", "url": "https://thevc.substack.com/feed", "tier": 3,
+     "focus": "ecosystem synthesis", "author": "Ruben Dominguez"},
+    {"name": "Sarah Tavel", "url": "https://sarahtavel.substack.com/feed", "tier": 3,
+     "focus": "consumer product frameworks, hierarchy of engagement", "author": "Sarah Tavel, Benchmark"},
+    {"name": "Growth Unhinged", "url": "https://www.growthunhinged.com/feed", "tier": 3,
+     "focus": "PLG, consumer-adjacent growth models", "author": "Kyle Poyar"},
+]
+
 # ── Fund raise detection keywords ─────────────────────────────
 
 CONSUMER_KEYWORDS = [
@@ -221,7 +248,41 @@ def run():
             log.warning(f"Feed {feed_def['name']} failed: {e}")
         time.sleep(1)
 
-    # 3. Product Hunt consumer launches
+    # 3. Substack feeds — market intel signals
+    for feed_def in SUBSTACK_FEEDS:
+        log.info(f"Scraping {feed_def['name']} (Tier {feed_def['tier']})...")
+        try:
+            feed = feedparser.parse(feed_def["url"])
+            count = 5 if feed_def["tier"] == 1 else 3  # more entries for Tier 1
+            for entry in feed.entries[:count]:
+                title = entry.get("title", "")
+                summary = entry.get("summary", "") or entry.get("description", "")
+                link = entry.get("link", "")
+                day_str = date.today().isoformat()
+                dedup_id = hashlib.md5(f"{title[:100]}:{day_str}".encode()).hexdigest()
+
+                record = {
+                    "id": dedup_id,
+                    "brand_name": title[:200],
+                    "category": "market_intel",
+                    "sub_category": feed_def["focus"],
+                    "stage": f"Tier {feed_def['tier']}",
+                    "what": (summary[:500] if summary else title),
+                    "signal_type": "substack",
+                    "source_url": link,
+                    "founder": feed_def["author"],
+                    "detected_at": datetime.now(timezone.utc).isoformat(),
+                }
+                try:
+                    supabase.table("brand_signals").upsert(record, on_conflict="id").execute()
+                    log.info(f"  Substack signal: {title[:60]}")
+                except Exception as e:
+                    log.warning(f"  Substack upsert failed: {e}")
+        except Exception as e:
+            log.warning(f"Substack feed {feed_def['name']} failed: {e}")
+        time.sleep(0.5)
+
+    # 4. Product Hunt consumer launches
     log.info("Scraping Product Hunt...")
     scrape_product_hunt()
 
