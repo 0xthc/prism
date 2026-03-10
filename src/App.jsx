@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from './supabase.js'
 
-const TABS = ['Signals', 'Shifts', 'Patterns', 'Market', 'Notes']
+const TABS = ['Precognition', 'Market', 'Trends', 'Intel']
 
 const CATEGORIES = [
   'Food & Drink',
@@ -172,11 +172,10 @@ function App() {
           ))}
         </div>
       </nav>
-      {activeTab === 'Signals'  && <SignalsTab />}
-      {activeTab === 'Shifts'   && <ShiftsTab />}
-      {activeTab === 'Patterns' && <PatternsTab />}
-      {activeTab === 'Market'   && <MarketTab />}
-      {activeTab === 'Notes'    && <Placeholder title="Notes"   subtitle="Your field observations and consumer market notes." />}
+      {activeTab === 'Precognition' && <SignalsTab />}
+      {activeTab === 'Market'       && <MarketTab />}
+      {activeTab === 'Trends'       && <TrendsTab />}
+      {activeTab === 'Intel'        && <IntelTab />}
     </div>
   )
 }
@@ -814,6 +813,230 @@ function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// ── Trends tab ────────────────────────────────────────────────
+
+const TREND_SOURCE_STYLES = {
+  'google_trends': { bg: '#e3f2fd', color: '#1565c0', label: 'Google Trends' },
+  'tiktok':        { bg: '#1a1a1a', color: '#fff',    label: 'TikTok' },
+  'manual':        { bg: '#f4f4f1', color: '#666',    label: 'Manual' },
+}
+
+const STAGE_STYLES = {
+  'emerging':      { bg: '#e8f5e9', color: '#2e7d32' },
+  'accelerating':  { bg: '#fff8e1', color: '#f57f17' },
+  'peaking':       { bg: '#fce4ec', color: '#c2185b' },
+  'mainstream':    { bg: '#f4f4f1', color: '#999'    },
+}
+
+function TrendsTab() {
+  const [trends, setTrends]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [source, setSource]   = useState('All')
+  const [cat, setCat]         = useState('All')
+
+  useEffect(() => {
+    supabase
+      .from('trend_shifts')
+      .select('*')
+      .order('momentum', { ascending: false })
+      .limit(100)
+      .then(({ data, error }) => {
+        if (data && data.length > 0) setTrends(data)
+        setLoading(false)
+      })
+  }, [])
+
+  const sources    = ['All', 'TikTok', 'Google Trends']
+  const categories = ['All', ...new Set(trends.map(t => t.category).filter(Boolean))]
+
+  const filtered = trends.filter(t => {
+    const matchSrc = source === 'All' || (TREND_SOURCE_STYLES[t.source]?.label === source)
+    const matchCat = cat === 'All' || t.category === cat
+    return matchSrc && matchCat
+  })
+
+  const emerging     = filtered.filter(t => t.stage === 'emerging').length
+  const accelerating = filtered.filter(t => t.stage === 'accelerating').length
+
+  return (
+    <div className="signals-wrap">
+      <div className="signals-header">
+        <div>
+          <h1>Trends</h1>
+          <div className="shifts-week">Consumer shifts · Ingredient moves · New usage paradigms</div>
+        </div>
+      </div>
+
+      {loading && <p className="empty-state">Loading…</p>}
+
+      {!loading && trends.length === 0 && (
+        <p className="empty-state">No trend data yet — scraper runs hourly.</p>
+      )}
+
+      {!loading && trends.length > 0 && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{emerging}</strong> emerging</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{accelerating}</strong> accelerating</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{filtered.length}</strong> total signals</span>
+          </div>
+
+          <div className="filter-row">
+            {sources.map(s => (
+              <button key={s} className={`filter-btn${source === s ? ' active' : ''}`}
+                onClick={() => setSource(s)} type="button">{s}</button>
+            ))}
+            <span style={{ margin: '0 8px', color: '#ddd' }}>|</span>
+            {categories.map(c => (
+              <button key={c} className={`filter-btn${cat === c ? ' active' : ''}`}
+                onClick={() => setCat(c)} type="button">{c}</button>
+            ))}
+          </div>
+
+          <div className="product-grid">
+            {filtered.map(trend => {
+              const srcStyle   = TREND_SOURCE_STYLES[trend.source] || { bg: '#f4f4f1', color: '#555', label: trend.source }
+              const stageStyle = STAGE_STYLES[trend.stage] || { bg: '#f4f4f1', color: '#666' }
+              const catStyle   = MARKET_CATEGORY_STYLES[trend.category] || { bg: '#f4f4f1', color: '#555' }
+              return (
+                <div key={trend.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      <span className="cat-badge" style={{ background: srcStyle.bg, color: srcStyle.color }}>
+                        {srcStyle.label}
+                      </span>
+                      <h3 className="product-name">{trend.trend_name}</h3>
+                    </div>
+                    <span className="pmf-badge" style={{ background: stageStyle.bg, color: stageStyle.color, borderColor: stageStyle.bg }}>
+                      {trend.stage}
+                    </span>
+                  </div>
+
+                  {trend.category && (
+                    <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color, marginBottom: 8, display: 'inline-block' }}>
+                      {trend.category}
+                    </span>
+                  )}
+
+                  {trend.signal && (
+                    <p className="differentiation" style={{ marginTop: 8 }}>{trend.signal}</p>
+                  )}
+
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, height: 4, background: '#f0f0ee', borderRadius: 2 }}>
+                      <div style={{ width: `${trend.momentum}%`, height: '100%', background: '#1a1a1a', borderRadius: 2 }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: '#aaa', minWidth: 32 }}>{trend.momentum}</span>
+                  </div>
+
+                  {trend.source_url && (
+                    <a href={trend.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ {trend.source === 'tiktok' ? 'TikTok' : 'Google Trends'}
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Intel tab ─────────────────────────────────────────────────
+
+function IntelTab() {
+  const [intel, setIntel]     = useState([])
+  const [loading, setLoading] = useState(true)
+  const [tier, setTier]       = useState('All')
+
+  useEffect(() => {
+    supabase
+      .from('brand_signals')
+      .select('*')
+      .eq('category', 'market_intel')
+      .order('detected_at', { ascending: false })
+      .limit(60)
+      .then(({ data }) => {
+        if (data) setIntel(data)
+        setLoading(false)
+      })
+  }, [])
+
+  const tiers    = ['All', 'Tier 1', 'Tier 2', 'Tier 3']
+  const filtered = tier === 'All' ? intel : intel.filter(i => i.stage === tier)
+
+  return (
+    <div className="signals-wrap">
+      <div className="signals-header">
+        <div>
+          <h1>Intel</h1>
+          <div className="shifts-week">Substack signals · Consumer VC · Operator perspectives</div>
+        </div>
+      </div>
+
+      {loading && <p className="empty-state">Loading…</p>}
+
+      {!loading && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{intel.filter(i => i.stage === 'Tier 1').length}</strong> Tier 1</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{intel.length}</strong> total signals</span>
+          </div>
+
+          <div className="filter-row">
+            {tiers.map(t => (
+              <button key={t} className={`filter-btn${tier === t ? ' active' : ''}`}
+                onClick={() => setTier(t)} type="button">{t}</button>
+            ))}
+          </div>
+
+          {filtered.length === 0 && <p className="empty-state">No intel yet — scraper runs hourly.</p>}
+
+          <div className="product-grid">
+            {filtered.map(item => {
+              const tierStyle = TIER_STYLES[item.stage] || { bg: '#f4f4f1', color: '#666' }
+              return (
+                <div key={item.id} className="product-card">
+                  <div className="card-top">
+                    <span className="cat-badge" style={{ background: tierStyle.bg, color: tierStyle.color }}>
+                      {item.stage || 'Tier 2'}
+                    </span>
+                  </div>
+                  <h3 className="product-name" style={{ fontSize: 13, marginTop: 6 }}>{item.brand_name}</h3>
+                  {item.sub_category && (
+                    <div style={{ fontSize: 10, color: '#aaa', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {item.sub_category}
+                    </div>
+                  )}
+                  {item.what && (
+                    <p className="differentiation" style={{ fontSize: 12 }}>{item.what.slice(0, 300)}</p>
+                  )}
+                  <div className="card-meta">
+                    <span className="meta-source">{item.founder}</span>
+                    <span className="meta-date">{formatDate(item.detected_at)}</span>
+                  </div>
+                  {item.source_url && (
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ Read
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 // ── Market tab ─────────────────────────────────────────────────

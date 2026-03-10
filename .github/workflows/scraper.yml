@@ -2,7 +2,7 @@ name: Prism Scraper
 
 on:
   schedule:
-    - cron: '0 * * * *'   # every hour
+    - cron: '0 * * * *'     # brand signals + fund raises — every hour
   workflow_dispatch:
 
 jobs:
@@ -19,8 +19,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
-      - name: Run scraper
+      - name: Run brand + fund scraper
         env:
           SUPABASE_URL: ${{ secrets.PRISM_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.PRISM_SUPABASE_SERVICE_KEY }}
         run: python backend/scraper.py
+
+      - name: Run trends scraper
+        env:
+          SUPABASE_URL: ${{ secrets.PRISM_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.PRISM_SUPABASE_SERVICE_KEY }}
+        run: python backend/trends_scraper.py
