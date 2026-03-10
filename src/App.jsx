@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { supabase } from './supabase.js'
 
 const TABS = ['Signals', 'Shifts', 'Patterns', 'Market', 'Notes']
 
@@ -174,7 +175,7 @@ function App() {
       {activeTab === 'Signals'  && <SignalsTab />}
       {activeTab === 'Shifts'   && <ShiftsTab />}
       {activeTab === 'Patterns' && <PatternsTab />}
-      {activeTab === 'Market'   && <Placeholder title="Market"  subtitle="Consumer deal flow, category heat maps, funding pulse." />}
+      {activeTab === 'Market'   && <MarketTab />}
       {activeTab === 'Notes'    && <Placeholder title="Notes"   subtitle="Your field observations and consumer market notes." />}
     </div>
   )
@@ -420,8 +421,61 @@ function Placeholder({ title, subtitle }) {
 
 function SignalsTab() {
   const [products, setProducts] = useState(MOCK_PRODUCTS)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
+
+  useEffect(() => {
+    supabase
+      .from('brand_signals')
+      .select('*')
+      .neq('category', 'market_intel')   // exclude Substack intel entries
+      .order('detected_at', { ascending: false })
+      .limit(50)
+      .then(({ data, error }) => {
+        if (error || !data || data.length === 0) {
+          setLoading(false)
+          return // fall back to mock data
+        }
+        const mapped = data.map((r) => ({
+          id: r.id,
+          name: r.brand_name,
+          category: mapCategory(r.category),
+          differentiation: r.what || '',
+          sources: r.signal_type ? [mapSourceLabel(r.signal_type)] : ['Press'],
+          source_detail: r.source_url ? new URL(r.source_url).hostname.replace('www.','') : '',
+          date_spotted: r.detected_at ? r.detected_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          pmf_flag: '',
+        }))
+        setProducts(mapped)
+        setLoading(false)
+      })
+  }, [])
+
+  function mapCategory(raw) {
+    if (!raw) return 'Lifestyle'
+    const map = {
+      'food & beverage': 'Food & Drink',
+      'food and beverage': 'Food & Drink',
+      'beauty': 'Beauty',
+      'wellness': 'Health & Fitness',
+      'health & fitness': 'Health & Fitness',
+      'fashion': 'Fashion',
+      'sustainability': 'Sustainability',
+      'consumer ai': 'Consumer AI',
+    }
+    return map[raw.toLowerCase()] || 'Lifestyle'
+  }
+
+  function mapSourceLabel(type) {
+    const map = {
+      'rss': 'Press',
+      'product_hunt': 'Product Hunt',
+      'substack': 'Newsletter',
+      'manual': 'Newsletter',
+    }
+    return map[type] || 'Press'
+  }
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -757,11 +811,168 @@ function ShiftsTab() {
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  if (!dateStr) return ''
+  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// ── Market tab ─────────────────────────────────────────────────
+
+const MARKET_CATEGORY_STYLES = {
+  'beauty':           { bg: '#fce4ec', color: '#c2185b' },
+  'consumer':         { bg: '#e8eaf6', color: '#3949ab' },
+  'food & beverage':  { bg: '#fff3e0', color: '#bf5000' },
+  'wellness':         { bg: '#e8f5e9', color: '#2e7d32' },
+  'longevity':        { bg: '#e0f7fa', color: '#00695c' },
+  'femtech':          { bg: '#fce4ec', color: '#880e4f' },
+  'sustainability':   { bg: '#e0f2f1', color: '#004d40' },
+  'fashion':          { bg: '#f3e5f5', color: '#7b1fa2' },
+  'fitness':          { bg: '#e8f5e9', color: '#1b5e20' },
+  'market_intel':     { bg: '#e3f2fd', color: '#1565c0' },
+}
+
+const TIER_STYLES = {
+  'Tier 1': { bg: '#1a1a1a', color: '#fff' },
+  'Tier 2': { bg: '#e8eaf6', color: '#3949ab' },
+  'Tier 3': { bg: '#f4f4f1', color: '#666' },
+}
+
+function MarketTab() {
+  const [section, setSection] = useState('Fund Theses')
+  const [funds, setFunds] = useState([])
+  const [intel, setIntel] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      supabase
+        .from('fund_raises')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30),
+      supabase
+        .from('brand_signals')
+        .select('*')
+        .eq('category', 'market_intel')
+        .order('detected_at', { ascending: false })
+        .limit(30),
+    ]).then(([fundsRes, intelRes]) => {
+      if (fundsRes.data) setFunds(fundsRes.data)
+      if (intelRes.data) setIntel(intelRes.data)
+      setLoading(false)
+    })
+  }, [])
+
+  return (
+    <div className="signals-wrap">
+      <div className="signals-header">
+        <div>
+          <h1>Market</h1>
+          <div className="shifts-week">Consumer deal flow · Fund theses · VC intel</div>
+        </div>
+        <div className="view-toggle">
+          {['Fund Theses', 'VC Intel'].map(s => (
+            <button
+              key={s}
+              className={`filter-btn${section === s ? ' active' : ''}`}
+              onClick={() => setSection(s)}
+              type="button"
+            >{s}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading && <p className="empty-state">Loading…</p>}
+
+      {!loading && section === 'Fund Theses' && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{funds.length}</strong> fund signals tracked</span>
+          </div>
+          {funds.length === 0 && <p className="empty-state">No fund signals yet — scraper runs hourly.</p>}
+          <div className="product-grid">
+            {funds.map(f => {
+              const cats = f.categories || ['consumer']
+              const primaryCat = cats[0] || 'consumer'
+              const catStyle = MARKET_CATEGORY_STYLES[primaryCat] || { bg: '#f4f4f1', color: '#555' }
+              return (
+                <div key={f.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color }}>
+                        {primaryCat}
+                      </span>
+                      <h3 className="product-name" style={{ fontSize: 13 }}>{f.fund_name}</h3>
+                    </div>
+                    {f.fund_size_m && (
+                      <span className="pmf-badge" style={{ background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>
+                        ${f.fund_size_m}M
+                      </span>
+                    )}
+                  </div>
+                  {f.thesis && <p className="differentiation">{f.thesis.slice(0, 280)}</p>}
+                  <div className="card-meta">
+                    <span className="meta-source">{f.source}</span>
+                    <span className="meta-date">{formatDate(f.announced_date || f.created_at)}</span>
+                  </div>
+                  {f.source_url && (
+                    <a href={f.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ {new URL(f.source_url).hostname.replace('www.','')}
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {!loading && section === 'VC Intel' && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{intel.length}</strong> newsletter signals</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{intel.filter(i => i.stage === 'Tier 1').length}</strong> Tier 1</span>
+          </div>
+          {intel.length === 0 && <p className="empty-state">No intel yet — scraper runs hourly.</p>}
+          <div className="product-grid">
+            {intel.map(item => {
+              const tierStyle = TIER_STYLES[item.stage] || { bg: '#f4f4f1', color: '#666' }
+              return (
+                <div key={item.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      <span className="cat-badge" style={{ background: tierStyle.bg, color: tierStyle.color }}>
+                        {item.stage || 'Tier 2'}
+                      </span>
+                      <h3 className="product-name" style={{ fontSize: 13 }}>{item.brand_name}</h3>
+                    </div>
+                  </div>
+                  {item.sub_category && (
+                    <div style={{ fontSize: 10, color: '#aaa', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {item.sub_category}
+                    </div>
+                  )}
+                  {item.what && <p className="differentiation" style={{ fontSize: 12 }}>{item.what.slice(0, 300)}</p>}
+                  <div className="card-meta">
+                    <span className="meta-source">{item.founder}</span>
+                    <span className="meta-date">{formatDate(item.detected_at)}</span>
+                  </div>
+                  {item.source_url && (
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ Read
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 export default App
