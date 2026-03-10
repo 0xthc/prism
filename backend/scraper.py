@@ -97,11 +97,18 @@ def extract_fund_size(text: str) -> int | None:
             return int(val)
     return None
 
+NOISE_KEYWORDS = [
+    "xprize", "contest", "challenge", "tiktok", "nft", "crypto", "web3",
+    "political", "election", "lawsuit", "lawsuit", "regulation", "sec ",
+]
+
 def is_consumer_fund_raise(title: str, summary: str) -> bool:
     text = (title + " " + summary).lower()
     has_consumer = any(kw in text for kw in CONSUMER_KEYWORDS)
     has_fund = any(kw in text for kw in FUND_KEYWORDS)
-    return has_consumer and has_fund
+    has_noise = any(kw in text for kw in NOISE_KEYWORDS)
+    # Must have both consumer + fund signal, no noise
+    return has_consumer and has_fund and not has_noise
 
 def upsert_fund_raise(entry: dict, source: str):
     title = entry.get("title", "")
@@ -145,7 +152,12 @@ def upsert_brand_signal(entry: dict, category: str, source: str):
     link = entry.get("link", "")
     today = date.today().isoformat()
 
+    # Create a stable ID from brand name + date to avoid duplicates
+    day_str = date.today().isoformat()
+    dedup_id = hashlib.md5(f"{title[:100]}:{day_str}".encode()).hexdigest()
+
     record = {
+        "id": dedup_id,
         "brand_name": title[:200],
         "category": category,
         "what": summary[:500] if summary else title,
@@ -155,7 +167,7 @@ def upsert_brand_signal(entry: dict, category: str, source: str):
     }
 
     try:
-        supabase.table("brand_signals").upsert(record, on_conflict="brand_name,detected_at::DATE").execute()
+        supabase.table("brand_signals").upsert(record, on_conflict="id").execute()
         log.info(f"Brand signal upserted: {title[:50]}")
     except Exception as e:
         log.warning(f"Brand signal upsert failed: {e}")
