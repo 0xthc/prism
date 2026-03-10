@@ -21,14 +21,29 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── Google Trends categories ───────────────────────────────────
-# cat ID → consumer label
-GTRENDS_CATEGORIES = {
-    44:  "beauty",
-    71:  "food & beverage",
-    45:  "wellness",
-    185: "fashion",
-    18:  "shopping",      # proxy for consumer general
+# ── Google Trends seed keywords per category ──────────────────
+# Use specific seeds so related queries are genuinely on-topic
+GTRENDS_SEEDS = {
+    "beauty": [
+        ["skincare routine", "serum", "moisturizer"],
+        ["retinol", "niacinamide", "hyaluronic acid"],
+        ["tinted sunscreen", "lip oil", "blush"],
+    ],
+    "food & beverage": [
+        ["functional beverage", "adaptogen drink", "prebiotic soda"],
+        ["protein bar", "gut health", "collagen powder"],
+        ["mushroom coffee", "electrolyte drink", "matcha latte"],
+    ],
+    "wellness": [
+        ["magnesium supplement", "ashwagandha", "sleep supplement"],
+        ["creatine women", "peptide supplement", "longevity supplement"],
+        ["red light therapy", "cold plunge", "breathwork"],
+    ],
+    "fashion": [
+        ["barrel jeans", "quiet luxury", "mob wife aesthetic"],
+        ["linen set", "ballet flat", "micro bag"],
+        ["capsule wardrobe", "sustainable fashion brand", "vintage denim"],
+    ],
 }
 
 STAGE_MAP = {
@@ -111,46 +126,44 @@ def scrape_google_trends():
 
     pytrends = TrendReq(hl="en-US", tz=300, timeout=(10, 25), retries=2, backoff_factor=0.5)
 
-    for cat_id, cat_label in GTRENDS_CATEGORIES.items():
-        log.info(f"Google Trends — {cat_label} (cat {cat_id})...")
-        try:
-            # Empty keyword query to get category-level rising terms
-            pytrends.build_payload([""], cat=cat_id, timeframe="today 3-m", geo="US")
-            related = pytrends.related_queries()
+    for category, seed_groups in GTRENDS_SEEDS.items():
+        log.info(f"Google Trends — {category}...")
+        seen = set()
+        for seeds in seed_groups:
+            try:
+                pytrends.build_payload(seeds, timeframe="today 3-m", geo="US")
+                related = pytrends.related_queries()
 
-            # related_queries returns dict keyed by keyword ("" in our case)
-            data = related.get("", {})
-            rising_df = data.get("rising")
-            if rising_df is None or rising_df.empty:
-                log.info(f"  No rising data for {cat_label}")
-                time.sleep(2)
-                continue
+                for seed in seeds:
+                    data = related.get(seed, {})
+                    rising_df = data.get("rising")
+                    if rising_df is None or rising_df.empty:
+                        continue
 
-            for _, row in rising_df.head(20).iterrows():
-                term  = str(row.get("query", "")).strip()
-                value = row.get("value", 0)
-                if not term:
-                    continue
-                if not is_consumer_trend(term):
-                    log.info(f"  Filtered noise: {term}")
-                    continue
+                    for _, row in rising_df.head(10).iterrows():
+                        term  = str(row.get("query", "")).strip()
+                        value = row.get("value", 0)
+                        if not term or term in seen:
+                            continue
+                        seen.add(term)
 
-                stage   = classify_stage(value)
-                momentum = min(100, int(value)) if isinstance(value, (int, float)) else 80
+                        stage    = classify_stage(value)
+                        momentum = min(95, int(value)) if isinstance(value, (int, float)) else 60
+                        search_url = f"https://trends.google.com/trends/explore?q={term.replace(' ', '+')}&geo=US"
 
-                upsert_trend(
-                    name=term,
-                    category=cat_label,
-                    stage=stage,
-                    momentum=momentum,
-                    signal=f"Google Trends rising: {value}% (3-month, US)",
-                    source="google_trends",
-                    source_url=f"https://trends.google.com/trends/explore?cat={cat_id}&geo=US",
-                )
-            time.sleep(3)  # be gentle — Google rate-limits pytrends
-        except Exception as e:
-            log.warning(f"  Google Trends {cat_label} failed: {e}")
-            time.sleep(5)
+                        upsert_trend(
+                            name=term,
+                            category=category,
+                            stage=stage,
+                            momentum=momentum,
+                            signal=f"Rising search: {value}% growth (3-month, US) — related to '{seed}'",
+                            source="google_trends",
+                            source_url=search_url,
+                        )
+                time.sleep(4)  # Google rate-limits pytrends hard
+            except Exception as e:
+                log.warning(f"  Google Trends [{category}] seeds={seeds} failed: {e}")
+                time.sleep(6)
 
 # ── TikTok Creative Center ─────────────────────────────────────
 # Industry IDs visible in Creative Center network requests
