@@ -121,7 +121,7 @@ def scrape_tiktok_trends():
         log.info(f"TikTok Creative Center — {category}...")
         try:
             params = {
-                "period": 7,          # last 7 days
+                "period": 7,
                 "page": 1,
                 "limit": 20,
                 "country_code": "US",
@@ -134,14 +134,26 @@ def scrape_tiktok_trends():
                 timeout=15,
             )
             if resp.status_code != 200:
-                log.warning(f"  TikTok {category}: HTTP {resp.status_code}")
+                log.warning(f"  TikTok {category}: HTTP {resp.status_code} — {resp.text[:200]}")
                 continue
 
             payload = resp.json()
-            items = payload.get("data", {}).get("list", [])
+            log.info(f"  TikTok response keys: {list(payload.keys())}")
+
+            # Try multiple response shapes
+            data = payload.get("data", {})
+            if isinstance(data, dict):
+                items = data.get("list", data.get("hashtag_list", data.get("trending", [])))
+            elif isinstance(data, list):
+                items = data
+            else:
+                items = []
+
             if not items:
-                # Try alternate key
-                items = payload.get("data", [])
+                log.warning(f"  TikTok {category}: no items in response — {str(payload)[:300]}")
+                continue
+
+            log.info(f"  TikTok {category}: {len(items)} items")
 
             for item in items[:15]:
                 hashtag = item.get("hashtag_name", "") or item.get("name", "")
