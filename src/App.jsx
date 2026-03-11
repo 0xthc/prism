@@ -418,130 +418,164 @@ function Placeholder({ title, subtitle }) {
   )
 }
 
+const SCORE_COLOR = (score) => {
+  if (score >= 70) return '#2e7d32'
+  if (score >= 50) return '#f57f17'
+  return '#1565c0'
+}
+
+const STAGE_LABEL = {
+  'pre-raise': { bg: '#e8f5e9', color: '#2e7d32', label: 'Pre-raise' },
+  'raising':   { bg: '#fff8e1', color: '#f57f17', label: 'Raising' },
+  'seed':      { bg: '#e3f2fd', color: '#1565c0', label: 'Seed' },
+  'series-a':  { bg: '#f3e5f5', color: '#7b1fa2', label: 'Series A' },
+}
+
+const ACC_STYLES = {
+  'Chobani Incubator':  { bg: '#fff3e0', color: '#bf5000' },
+  'SKS Accelerator':    { bg: '#e8f5e9', color: '#2e7d32' },
+  'Techstars Consumer': { bg: '#e3f2fd', color: '#1565c0' },
+  'Target Accelerator': { bg: '#fce4ec', color: '#c2185b' },
+  'Expo West':          { bg: '#f3e5f5', color: '#7b1fa2' },
+  'Product Hunt':       { bg: '#fff8e1', color: '#f57f17' },
+}
+
 function SignalsTab() {
-  const [products, setProducts] = useState(MOCK_PRODUCTS)
+  const [brands, setBrands]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [search, setSearch]   = useState('')
+  const [catFilter, setCat]   = useState('All')
 
   useEffect(() => {
     supabase
-      .from('brand_signals')
+      .from('consumer_founders')
       .select('*')
-      .neq('category', 'market_intel')   // exclude Substack intel entries
-      .order('detected_at', { ascending: false })
-      .limit(50)
-      .then(({ data, error }) => {
-        if (error || !data || data.length === 0) {
-          setLoading(false)
-          return // fall back to mock data
-        }
-        const mapped = data.map((r) => ({
-          id: r.id,
-          name: r.brand_name,
-          category: mapCategory(r.category),
-          differentiation: r.what || '',
-          sources: r.signal_type ? [mapSourceLabel(r.signal_type)] : ['Press'],
-          source_detail: r.source_url ? new URL(r.source_url).hostname.replace('www.','') : '',
-          date_spotted: r.detected_at ? r.detected_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
-          pmf_flag: '',
-        }))
-        setProducts(mapped)
+      .order('score', { ascending: false })
+      .limit(60)
+      .then(({ data }) => {
+        if (data && data.length > 0) setBrands(data)
         setLoading(false)
       })
   }, [])
 
-  function mapCategory(raw) {
-    if (!raw) return 'Lifestyle'
-    const map = {
-      'food & beverage': 'Food & Drink',
-      'food and beverage': 'Food & Drink',
-      'beauty': 'Beauty',
-      'wellness': 'Health & Fitness',
-      'health & fitness': 'Health & Fitness',
-      'fashion': 'Fashion',
-      'sustainability': 'Sustainability',
-      'consumer ai': 'Consumer AI',
-    }
-    return map[raw.toLowerCase()] || 'Lifestyle'
-  }
+  const cats = ['All', ...new Set(brands.map(b => b.category).filter(Boolean))]
 
-  function mapSourceLabel(type) {
-    const map = {
-      'rss': 'Press',
-      'product_hunt': 'Product Hunt',
-      'substack': 'Newsletter',
-      'manual': 'Newsletter',
-    }
-    return map[type] || 'Press'
-  }
+  const filtered = brands.filter(b => {
+    const matchCat = catFilter === 'All' || b.category === catFilter
+    const matchSearch = !search ||
+      b.brand_name?.toLowerCase().includes(search.toLowerCase()) ||
+      b.why_surfaced?.toLowerCase().includes(search.toLowerCase())
+    return matchCat && matchSearch
+  })
 
-  const filtered = useMemo(() => {
-    return products.filter((p) => {
-      const matchCat = categoryFilter === 'All' || p.category === categoryFilter
-      const matchSearch =
-        !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.differentiation.toLowerCase().includes(search.toLowerCase())
-      return matchCat && matchSearch
-    })
-  }, [products, search, categoryFilter])
-
-  const flagged = products.filter((p) => p.pmf_flag && p.pmf_flag !== 'Pass').length
-
-  function setFlag(id, flag) {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, pmf_flag: p.pmf_flag === flag ? '' : flag } : p))
-    )
-  }
+  const highSignal = brands.filter(b => b.score >= 60).length
 
   return (
     <div className="signals-wrap">
       <div className="signals-header">
-        <h1>Signals</h1>
+        <div>
+          <h1>Precognition</h1>
+          <div className="shifts-week">Consumer brands before the raise</div>
+        </div>
         <div className="header-right">
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <input className="search-input" type="text" placeholder="Search brands..."
+            value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      <div className="stats-row">
-        <span className="stat-item">
-          <strong>{products.length}</strong> products tracked
-        </span>
-        <span className="stat-sep">·</span>
-        <span className="stat-item">
-          <strong>{flagged}</strong> flagged
-        </span>
-      </div>
+      {loading && <p className="empty-state">Loading…</p>}
 
-      <div className="filter-row">
-        {['All', ...CATEGORIES].map((cat) => (
-          <button
-            key={cat}
-            className={`filter-btn${categoryFilter === cat ? ' active' : ''}`}
-            onClick={() => setCategoryFilter(cat)}
-            type="button"
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <p className="empty-state">No products match.</p>
+      {!loading && brands.length === 0 && (
+        <p className="empty-state">No brands yet — run the precognition scraper first.</p>
       )}
 
-      <div className="product-grid">
-        {filtered.map((product) => (
-          <ProductCard key={product.id} product={product} onSetFlag={setFlag} />
-        ))}
-      </div>
+      {!loading && brands.length > 0 && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{brands.length}</strong> brands tracked</span>
+            <span className="stat-sep">·</span>
+            <span className="stat-item"><strong>{highSignal}</strong> high signal (60+)</span>
+          </div>
+
+          <div className="filter-row">
+            {cats.map(c => (
+              <button key={c} className={`filter-btn${catFilter === c ? ' active' : ''}`}
+                onClick={() => setCat(c)} type="button">{c}</button>
+            ))}
+          </div>
+
+          {filtered.length === 0 && <p className="empty-state">No brands match.</p>}
+
+          <div className="product-grid">
+            {filtered.map(brand => {
+              const catStyle   = MARKET_CATEGORY_STYLES[brand.category] || { bg: '#f4f4f1', color: '#555' }
+              const stageStyle = STAGE_LABEL[brand.stage] || { bg: '#f4f4f1', color: '#666', label: brand.stage }
+              const accStyle   = ACC_STYLES[brand.accelerator] || { bg: '#f4f4f1', color: '#555' }
+              const scoreColor = SCORE_COLOR(brand.score || 0)
+              const signals    = (() => { try { return JSON.parse(brand.signals || '[]') } catch { return [] } })()
+
+              return (
+                <div key={brand.id} className="product-card">
+                  <div className="card-top">
+                    <div>
+                      {brand.category && (
+                        <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color }}>
+                          {brand.category}
+                        </span>
+                      )}
+                      <h3 className="product-name">{brand.brand_name}</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: scoreColor }}>{brand.score}</span>
+                      <span style={{ fontSize: 10, color: '#aaa' }}>score</span>
+                    </div>
+                  </div>
+
+                  {brand.accelerator && (
+                    <span className="cat-badge" style={{ background: accStyle.bg, color: accStyle.color, marginBottom: 8, display: 'inline-block' }}>
+                      {brand.accelerator}
+                    </span>
+                  )}
+
+                  {brand.why_surfaced && (
+                    <p className="differentiation" style={{ fontSize: 12, color: '#555' }}>
+                      {brand.why_surfaced}
+                    </p>
+                  )}
+
+                  {signals.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      {signals.map((sig, i) => (
+                        <div key={i} style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>
+                          <strong style={{ color: '#555' }}>{sig.label}</strong> — {sig.detail}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, height: 3, background: '#f0f0ee', borderRadius: 2 }}>
+                      <div style={{ width: `${brand.score}%`, height: '100%', background: scoreColor, borderRadius: 2 }} />
+                    </div>
+                    {brand.stage && (
+                      <span className="cat-badge" style={{ background: stageStyle.bg, color: stageStyle.color, fontSize: 10 }}>
+                        {stageStyle.label}
+                      </span>
+                    )}
+                  </div>
+
+                  {brand.source_url && (
+                    <a href={brand.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ {brand.source}
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

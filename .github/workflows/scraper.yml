@@ -30,3 +30,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.PRISM_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.PRISM_SUPABASE_SERVICE_KEY }}
         run: python backend/trends_scraper.py
+
+      - name: Run precognition scraper
+        env:
+          SUPABASE_URL: ${{ secrets.PRISM_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.PRISM_SUPABASE_SERVICE_KEY }}
+        run: python backend/precognition_scraper.py
