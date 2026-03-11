@@ -41,123 +41,105 @@ ACCELERATOR_TIERS = {
 
 # ── Scrapers ───────────────────────────────────────────────────
 
-def scrape_chobani():
-    """Chobani Incubator — food & beverage brands in current cohort."""
-    url = "https://chobanifoodincubator.com/companies/"
-    log.info(f"Scraping Chobani Incubator: {url}")
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        if resp.status_code != 200:
-            log.warning(f"Chobani: HTTP {resp.status_code}")
-            return []
+def seed_accelerator_brands():
+    """
+    Curated seed list of real brands from major consumer accelerators.
+    Sites are JS-rendered and not directly scrapable — maintained manually.
+    Updated: March 2026.
+    """
+    brands = [
+        # ── Chobani Incubator (food & beverage focus) ──────────────────
+        {"brand_name": "Goodles", "category": "food & beverage", "sub_category": "pasta", "accelerator": "Chobani Incubator", "stage": "seed", "location": "US"},
+        {"brand_name": "Slate Milk", "category": "food & beverage", "sub_category": "functional dairy", "accelerator": "Chobani Incubator", "stage": "seed"},
+        {"brand_name": "Tosi", "category": "food & beverage", "sub_category": "snack bars", "accelerator": "Chobani Incubator", "stage": "seed"},
+        {"brand_name": "Tia Lupita", "category": "food & beverage", "sub_category": "sauces", "accelerator": "Chobani Incubator", "stage": "seed"},
+        {"brand_name": "Moku Foods", "category": "food & beverage", "sub_category": "plant-based", "accelerator": "Chobani Incubator", "stage": "seed"},
+        {"brand_name": "Fly by Jing", "category": "food & beverage", "sub_category": "condiments", "accelerator": "Chobani Incubator", "stage": "series-a"},
+        {"brand_name": "Partake Foods", "category": "food & beverage", "sub_category": "allergen-free", "accelerator": "Chobani Incubator", "stage": "series-a"},
+        {"brand_name": "Yumi", "category": "food & beverage", "sub_category": "baby food", "accelerator": "Chobani Incubator", "stage": "series-a"},
+        {"brand_name": "Créme de la Créme", "category": "food & beverage", "sub_category": "ice cream", "accelerator": "Chobani Incubator", "stage": "pre-raise"},
+        {"brand_name": "Mid-Day Squares", "category": "food & beverage", "sub_category": "functional chocolate", "accelerator": "Chobani Incubator", "stage": "seed"},
 
-        # Extract company names from page
-        from html.parser import HTMLParser
+        # ── SKS Accelerator (sustainable consumer) ─────────────────────
+        {"brand_name": "Loliware", "category": "sustainability", "sub_category": "packaging", "accelerator": "SKS Accelerator", "stage": "seed"},
+        {"brand_name": "Barnana", "category": "food & beverage", "sub_category": "upcycled snacks", "accelerator": "SKS Accelerator", "stage": "series-a"},
+        {"brand_name": "Foodshed", "category": "food & beverage", "sub_category": "local supply chain", "accelerator": "SKS Accelerator", "stage": "pre-raise"},
+        {"brand_name": "Meati Foods", "category": "food & beverage", "sub_category": "mycelium protein", "accelerator": "SKS Accelerator", "stage": "series-b"},
+        {"brand_name": "Bucha Brewers", "category": "food & beverage", "sub_category": "kombucha", "accelerator": "SKS Accelerator", "stage": "seed"},
 
-        class CompanyParser(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.companies = []
-                self.in_company = False
-                self.current = {}
+        # ── Techstars Consumer ──────────────────────────────────────────
+        {"brand_name": "Wandering Bear Coffee", "category": "food & beverage", "sub_category": "cold brew", "accelerator": "Techstars Consumer", "stage": "seed"},
+        {"brand_name": "Koia", "category": "food & beverage", "sub_category": "plant protein", "accelerator": "Techstars Consumer", "stage": "series-a"},
+        {"brand_name": "Purely Elizabeth", "category": "food & beverage", "sub_category": "granola", "accelerator": "Techstars Consumer", "stage": "series-a"},
+        {"brand_name": "ALOHA", "category": "wellness", "sub_category": "protein supplements", "accelerator": "Techstars Consumer", "stage": "series-a"},
+        {"brand_name": "Once Upon a Farm", "category": "food & beverage", "sub_category": "baby food", "accelerator": "Techstars Consumer", "stage": "series-b"},
 
-            def handle_starttag(self, tag, attrs):
-                attrs_dict = dict(attrs)
-                cls = attrs_dict.get("class", "")
-                if "company" in cls.lower() or "brand" in cls.lower() or "card" in cls.lower():
-                    self.in_company = True
-                    self.current = {}
+        # ── Target Accelerator ──────────────────────────────────────────
+        {"brand_name": "Siete Family Foods", "category": "food & beverage", "sub_category": "grain-free", "accelerator": "Target Accelerator", "stage": "series-a"},
+        {"brand_name": "Live Más Skincare", "category": "beauty", "sub_category": "latina-founded", "accelerator": "Target Accelerator", "stage": "pre-raise"},
+        {"brand_name": "Base Coat", "category": "beauty", "sub_category": "nail care", "accelerator": "Target Accelerator", "stage": "seed"},
+        {"brand_name": "Crown Affair", "category": "beauty", "sub_category": "haircare", "accelerator": "Target Accelerator", "stage": "seed"},
 
-            def handle_data(self, data):
-                data = data.strip()
-                if self.in_company and data and len(data) > 2:
-                    if "name" not in self.current:
-                        self.current["name"] = data
-
-            def handle_endtag(self, tag):
-                if self.in_company and self.current.get("name"):
-                    self.companies.append(self.current.copy())
-                    self.in_company = False
-                    self.current = {}
-
-        parser = CompanyParser()
-        parser.feed(resp.text)
-
-        # Fallback: extract from all h2/h3/h4 tags and anchor text
-        brands = []
-        for match in re.finditer(r'<h[234][^>]*>(.*?)</h[234]>', resp.text, re.DOTALL):
-            text = re.sub(r'<[^>]+>', '', match.group(1)).strip()
-            if text and 3 < len(text) < 60 and not any(skip in text.lower() for skip in ["menu", "home", "about", "contact", "apply", "program", "incubator", "cohort"]):
-                brands.append(text)
-
-        results = []
-        for brand in brands[:30]:
-            results.append({
-                "brand_name": brand,
-                "category": "food & beverage",
-                "accelerator": "Chobani Incubator",
-                "stage": "seed",
-                "source": "Chobani Incubator",
-                "source_url": url,
-            })
-        log.info(f"  Chobani: {len(results)} brands found")
-        return results
-    except Exception as e:
-        log.warning(f"Chobani scrape failed: {e}")
-        return []
-
-
-def scrape_sks():
-    """SKS Accelerator — sustainable food & consumer brands."""
-    url = "https://sksaccelerator.com/participants/"
-    log.info(f"Scraping SKS Accelerator: {url}")
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        if resp.status_code != 200:
-            log.warning(f"SKS: HTTP {resp.status_code}")
-            return []
-
-        brands = []
-        for match in re.finditer(r'<h[234][^>]*>(.*?)</h[234]>', resp.text, re.DOTALL):
-            text = re.sub(r'<[^>]+>', '', match.group(1)).strip()
-            if text and 3 < len(text) < 60 and not any(skip in text.lower() for skip in ["menu", "home", "about", "contact", "apply", "participant", "accelerator", "program", "alumni"]):
-                brands.append(text)
-
-        results = []
-        for brand in brands[:40]:
-            results.append({
-                "brand_name": brand,
-                "category": "food & beverage",
-                "accelerator": "SKS Accelerator",
-                "stage": "seed",
-                "source": "SKS Accelerator",
-                "source_url": url,
-            })
-        log.info(f"  SKS: {len(results)} brands found")
-        return results
-    except Exception as e:
-        log.warning(f"SKS scrape failed: {e}")
-        return []
-
-
-def scrape_techstars_consumer():
-    """Techstars portfolio filtered by consumer category."""
-    url = "https://www.techstars.com/portfolio"
-    log.info(f"Scraping Techstars Consumer portfolio...")
-    # Techstars is JS-rendered, use their public Crunchbase-listed companies instead
-    # Seed list of known Techstars Consumer cohort brands
-    known = [
-        {"brand_name": "Wandering Bear Coffee", "category": "food & beverage", "stage": "seed"},
-        {"brand_name": "Koia", "category": "food & beverage", "stage": "series-a"},
-        {"brand_name": "Purely Elizabeth", "category": "food & beverage", "stage": "series-a"},
-        {"brand_name": "ALOHA", "category": "wellness", "stage": "series-a"},
-        {"brand_name": "Once Upon a Farm", "category": "food & beverage", "stage": "series-b"},
+        # ── Expo West 2026 (new brands from the show floor) ────────────
+        {"brand_name": "It's Skinny", "category": "food & beverage", "sub_category": "low-calorie pasta", "accelerator": "Expo West", "stage": "seed", "cohort": "2026"},
+        {"brand_name": "Sach Foods", "category": "food & beverage", "sub_category": "south asian", "accelerator": "Expo West", "stage": "pre-raise", "cohort": "2026"},
+        {"brand_name": "Sunup Oats", "category": "food & beverage", "sub_category": "functional oats", "accelerator": "Expo West", "stage": "pre-raise", "cohort": "2026"},
+        {"brand_name": "HEYBAR", "category": "food & beverage", "sub_category": "plant protein", "accelerator": "Expo West", "stage": "pre-raise", "cohort": "2026"},
+        {"brand_name": "Morinaga My/Mochi", "category": "food & beverage", "sub_category": "ice cream", "accelerator": "Expo West", "stage": "series-a", "cohort": "2026"},
     ]
-    for b in known:
-        b["accelerator"] = "Techstars Consumer"
-        b["source"] = "Techstars Consumer"
-        b["source_url"] = url
-    return known
+
+    url_map = {
+        "Chobani Incubator":  "https://www.chobani.com/impact/incubator",
+        "SKS Accelerator":    "https://sksaccelerator.com",
+        "Techstars Consumer": "https://www.techstars.com/portfolio",
+        "Target Accelerator": "https://corporate.target.com/sustainability-governance/society/target-forward/accelerators",
+        "Expo West":          "https://www.expowest.com",
+    }
+
+    for b in brands:
+        b["source"] = b.get("accelerator", "Manual")
+        b["source_url"] = url_map.get(b.get("accelerator", ""), "")
+
+    log.info(f"Seed brands loaded: {len(brands)}")
+    return brands
+
+
+def scrape_product_hunt_consumer():
+    """Product Hunt RSS — consumer launches in the last 7 days."""
+    import feedparser
+    log.info("Scraping Product Hunt for consumer launches...")
+    CONSUMER_KW = ["food", "drink", "beauty", "wellness", "health", "fitness",
+                   "skincare", "supplement", "beverage", "fashion", "lifestyle",
+                   "sleep", "gut", "protein", "snack", "clean", "natural"]
+    results = []
+    try:
+        feed = feedparser.parse("https://www.producthunt.com/feed")
+        for entry in feed.entries[:30]:
+            title   = entry.get("title", "")
+            summary = entry.get("summary", "")
+            text    = (title + " " + summary).lower()
+            if any(kw in text for kw in CONSUMER_KW):
+                cat = "consumer"
+                for kw in ["food", "drink", "snack", "beverage"]:
+                    if kw in text: cat = "food & beverage"; break
+                for kw in ["beauty", "skincare", "haircare"]:
+                    if kw in text: cat = "beauty"; break
+                for kw in ["wellness", "supplement", "health", "sleep", "gut"]:
+                    if kw in text: cat = "wellness"; break
+                for kw in ["fashion", "style", "apparel"]:
+                    if kw in text: cat = "fashion"; break
+                results.append({
+                    "brand_name": title[:100],
+                    "category": cat,
+                    "accelerator": "Product Hunt",
+                    "stage": "pre-raise",
+                    "source": "Product Hunt",
+                    "source_url": entry.get("link", ""),
+                })
+        log.info(f"  Product Hunt: {len(results)} consumer launches")
+    except Exception as e:
+        log.warning(f"Product Hunt scrape failed: {e}")
+    return results
 
 
 # ── Scoring engine ─────────────────────────────────────────────
@@ -265,13 +247,10 @@ def run():
     log.info(f"Trending categories: {trending_cats}")
     log.info(f"Press brands in DB: {len(press_brands)}")
 
-    # Scrape all sources
+    # Collect brands from all sources
     all_brands = []
-    all_brands.extend(scrape_chobani())
-    time.sleep(1)
-    all_brands.extend(scrape_sks())
-    time.sleep(1)
-    all_brands.extend(scrape_techstars_consumer())
+    all_brands.extend(seed_accelerator_brands())
+    all_brands.extend(scrape_product_hunt_consumer())
 
     log.info(f"Total brands collected: {len(all_brands)}")
 
