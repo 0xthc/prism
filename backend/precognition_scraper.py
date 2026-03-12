@@ -49,36 +49,30 @@ def seed_accelerator_brands():
     """
     brands = [
         # ── Chobani Incubator (food & beverage focus) ──────────────────
-        {"brand_name": "Goodles", "category": "food & beverage", "sub_category": "pasta", "accelerator": "Chobani Incubator", "stage": "seed", "location": "US"},
         {"brand_name": "Slate Milk", "category": "food & beverage", "sub_category": "functional dairy", "accelerator": "Chobani Incubator", "stage": "seed"},
         {"brand_name": "Tosi", "category": "food & beverage", "sub_category": "snack bars", "accelerator": "Chobani Incubator", "stage": "seed"},
         {"brand_name": "Tia Lupita", "category": "food & beverage", "sub_category": "sauces", "accelerator": "Chobani Incubator", "stage": "seed"},
         {"brand_name": "Moku Foods", "category": "food & beverage", "sub_category": "plant-based", "accelerator": "Chobani Incubator", "stage": "seed"},
-        {"brand_name": "Fly by Jing", "category": "food & beverage", "sub_category": "condiments", "accelerator": "Chobani Incubator", "stage": "series-a"},
-        {"brand_name": "Partake Foods", "category": "food & beverage", "sub_category": "allergen-free", "accelerator": "Chobani Incubator", "stage": "series-a"},
-        {"brand_name": "Yumi", "category": "food & beverage", "sub_category": "baby food", "accelerator": "Chobani Incubator", "stage": "series-a"},
         {"brand_name": "Créme de la Créme", "category": "food & beverage", "sub_category": "ice cream", "accelerator": "Chobani Incubator", "stage": "pre-raise"},
         {"brand_name": "Mid-Day Squares", "category": "food & beverage", "sub_category": "functional chocolate", "accelerator": "Chobani Incubator", "stage": "seed"},
+        # Removed: Goodles (well-known), Fly by Jing (Series A established), Partake Foods (Series A established), Yumi (Series A established)
 
         # ── SKS Accelerator (sustainable consumer) ─────────────────────
         {"brand_name": "Loliware", "category": "sustainability", "sub_category": "packaging", "accelerator": "SKS Accelerator", "stage": "seed"},
-        {"brand_name": "Barnana", "category": "food & beverage", "sub_category": "upcycled snacks", "accelerator": "SKS Accelerator", "stage": "series-a"},
         {"brand_name": "Foodshed", "category": "food & beverage", "sub_category": "local supply chain", "accelerator": "SKS Accelerator", "stage": "pre-raise"},
-        {"brand_name": "Meati Foods", "category": "food & beverage", "sub_category": "mycelium protein", "accelerator": "SKS Accelerator", "stage": "series-b"},
         {"brand_name": "Bucha Brewers", "category": "food & beverage", "sub_category": "kombucha", "accelerator": "SKS Accelerator", "stage": "seed"},
+        # Removed: Barnana (established), Meati Foods (Series B)
 
         # ── Techstars Consumer ──────────────────────────────────────────
         {"brand_name": "Wandering Bear Coffee", "category": "food & beverage", "sub_category": "cold brew", "accelerator": "Techstars Consumer", "stage": "seed"},
         {"brand_name": "Koia", "category": "food & beverage", "sub_category": "plant protein", "accelerator": "Techstars Consumer", "stage": "series-a"},
-        {"brand_name": "Purely Elizabeth", "category": "food & beverage", "sub_category": "granola", "accelerator": "Techstars Consumer", "stage": "series-a"},
-        {"brand_name": "ALOHA", "category": "wellness", "sub_category": "protein supplements", "accelerator": "Techstars Consumer", "stage": "series-a"},
-        {"brand_name": "Once Upon a Farm", "category": "food & beverage", "sub_category": "baby food", "accelerator": "Techstars Consumer", "stage": "series-b"},
+        # Removed: Purely Elizabeth (acquired by Post Holdings), ALOHA (established), Once Upon a Farm (Series B)
 
         # ── Target Accelerator ──────────────────────────────────────────
-        {"brand_name": "Siete Family Foods", "category": "food & beverage", "sub_category": "grain-free", "accelerator": "Target Accelerator", "stage": "series-a"},
         {"brand_name": "Live Más Skincare", "category": "beauty", "sub_category": "latina-founded", "accelerator": "Target Accelerator", "stage": "pre-raise"},
         {"brand_name": "Base Coat", "category": "beauty", "sub_category": "nail care", "accelerator": "Target Accelerator", "stage": "seed"},
         {"brand_name": "Crown Affair", "category": "beauty", "sub_category": "haircare", "accelerator": "Target Accelerator", "stage": "seed"},
+        # Removed: Siete Family Foods (acquired by PepsiCo for $1.2B)
 
         # ── Expo West 2026 (new brands from the show floor) ────────────
         {"brand_name": "It's Skinny", "category": "food & beverage", "sub_category": "low-calorie pasta", "accelerator": "Expo West", "stage": "seed", "cohort": "2026"},

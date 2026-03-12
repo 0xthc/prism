@@ -440,18 +440,21 @@ const ACC_STYLES = {
   'Product Hunt':       { bg: '#fff8e1', color: '#f57f17' },
 }
 
+const EARLY_STAGES = ['pre-raise', 'seed']
+
 function SignalsTab() {
-  const [brands, setBrands]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
-  const [catFilter, setCat]   = useState('All')
+  const [brands, setBrands]     = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [catFilter, setCat]     = useState('All')
+  const [stageFilter, setStage] = useState('early') // 'early' = pre-raise + seed only; 'all' = everything
 
   useEffect(() => {
     supabase
       .from('consumer_founders')
       .select('*')
       .order('score', { ascending: false })
-      .limit(60)
+      .limit(100)
       .then(({ data }) => {
         if (data && data.length > 0) setBrands(data)
         setLoading(false)
@@ -461,14 +464,15 @@ function SignalsTab() {
   const cats = ['All', ...new Set(brands.map(b => b.category).filter(Boolean))]
 
   const filtered = brands.filter(b => {
+    const matchStage = stageFilter === 'all' || EARLY_STAGES.includes(b.stage)
     const matchCat = catFilter === 'All' || b.category === catFilter
     const matchSearch = !search ||
       b.brand_name?.toLowerCase().includes(search.toLowerCase()) ||
       b.why_surfaced?.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+    return matchStage && matchCat && matchSearch
   })
 
-  const highSignal = brands.filter(b => b.score >= 60).length
+  const highSignal = filtered.filter(b => b.score >= 60).length
 
   return (
     <div className="signals-wrap">
@@ -492,9 +496,22 @@ function SignalsTab() {
       {!loading && brands.length > 0 && (
         <>
           <div className="stats-row">
-            <span className="stat-item"><strong>{brands.length}</strong> brands tracked</span>
+            <span className="stat-item"><strong>{filtered.length}</strong> brands</span>
             <span className="stat-sep">·</span>
             <span className="stat-item"><strong>{highSignal}</strong> high signal (60+)</span>
+            <span className="stat-sep">·</span>
+            <div className="view-toggle" style={{ display: 'inline-flex', gap: 4 }}>
+              <button
+                className={`filter-btn${stageFilter === 'early' ? ' active' : ''}`}
+                onClick={() => setStage('early')} type="button">
+                Pre-raise + Seed
+              </button>
+              <button
+                className={`filter-btn${stageFilter === 'all' ? ' active' : ''}`}
+                onClick={() => setStage('all')} type="button">
+                All stages
+              </button>
+            </div>
           </div>
 
           <div className="filter-row">
