@@ -245,6 +245,82 @@ def upsert_brand(brand: dict):
 
 # ── Main ───────────────────────────────────────────────────────
 
+def seed_tech_consumer():
+    """
+    Curated seed list of tech companies with consumer distribution.
+    These are NOT pure brands — they're software/AI/marketplace companies
+    that win through consumer experience, not brand equity.
+    Think: Forerunner's current thesis (Oura, Monarch Money, Headway, Prenuvo).
+    Updated: March 2026.
+    """
+    companies = [
+        # ── Consumer AI ────────────────────────────────────────────────
+        {"brand_name": "Daydream", "category": "consumer AI", "sub_category": "AI fashion", "accelerator": "Forerunner", "stage": "seed",
+         "why_surfaced": "AI-native style OS — Forerunner backed · personal styling via LLM", "source_url": "https://daydream.com"},
+        {"brand_name": "Nomi", "category": "consumer AI", "sub_category": "AI companion", "accelerator": "Product Hunt", "stage": "pre-raise",
+         "why_surfaced": "AI companion with persistent memory — growing fast on app stores", "source_url": "https://nomi.ai"},
+        {"brand_name": "Dot", "category": "consumer AI", "sub_category": "AI advisor", "accelerator": "Product Hunt", "stage": "pre-raise",
+         "why_surfaced": "Personal AI trained on your life context — private, on-device", "source_url": "https://new.computer"},
+        {"brand_name": "Arcade", "category": "consumer AI", "sub_category": "AI creation", "accelerator": "Forerunner", "stage": "seed",
+         "why_surfaced": "Turn thoughts into things — AI-native creation platform · Forerunner backed", "source_url": "https://forerunnerventures.com/investments/arcade"},
+
+        # ── Health Tech ─────────────────────────────────────────────────
+        {"brand_name": "Superpower", "category": "health tech", "sub_category": "preventive health", "accelerator": "a16z", "stage": "seed",
+         "why_surfaced": "Preventive health dashboard — bloodwork + biomarkers before symptoms · a16z backed", "source_url": "https://superpower.com"},
+        {"brand_name": "Function Health", "category": "health tech", "sub_category": "lab diagnostics", "accelerator": "General Catalyst", "stage": "seed",
+         "why_surfaced": "100+ lab tests annually for $499 — health data ownership trend · Mark Hyman backed", "source_url": "https://functionhealth.com"},
+        {"brand_name": "January AI", "category": "health tech", "sub_category": "metabolic health", "accelerator": "First Round", "stage": "seed",
+         "why_surfaced": "CGM + AI food coaching — metabolic intelligence without a prescription · First Round backed", "source_url": "https://januaryai.com"},
+        {"brand_name": "Mojo", "category": "health tech", "sub_category": "men's hormone health", "accelerator": "Product Hunt", "stage": "pre-raise",
+         "why_surfaced": "Testosterone optimization subscription — men's health category expanding", "source_url": "https://mojo.so"},
+        {"brand_name": "Stix Health", "category": "health tech", "sub_category": "sexual health", "accelerator": "First Round", "stage": "seed",
+         "why_surfaced": "At-home sexual/reproductive health delivery — millennial women · First Round backed", "source_url": "https://getstix.com"},
+
+        # ── Longevity / Mental Health ────────────────────────────────────
+        {"brand_name": "Coa", "category": "mental health", "sub_category": "mental fitness", "accelerator": "General Catalyst", "stage": "seed",
+         "why_surfaced": "Mental fitness gym — proactive mental health, not reactive therapy · Gen Catalyst backed", "source_url": "https://mycoa.io"},
+        {"brand_name": "Brightside Health", "category": "mental health", "sub_category": "therapy + medication", "accelerator": "a16z", "stage": "series-a",
+         "why_surfaced": "Combined therapy + medication for anxiety/depression online · a16z backed", "source_url": "https://brightside.com"},
+        {"brand_name": "Prenuvo", "category": "longevity", "sub_category": "full-body MRI", "accelerator": "Forerunner", "stage": "series-a",
+         "why_surfaced": "Full-body MRI screening as consumer product — Forerunner + Jeff Bezos backed", "source_url": "https://prenuvo.com"},
+
+        # ── Fintech (consumer) ──────────────────────────────────────────
+        {"brand_name": "Copilot Money", "category": "fintech", "sub_category": "personal finance", "accelerator": "First Round", "stage": "seed",
+         "why_surfaced": "AI-native personal finance for Apple users — premium design · First Round backed", "source_url": "https://copilot.money"},
+        {"brand_name": "Monarch Money", "category": "fintech", "sub_category": "household finance", "accelerator": "Forerunner", "stage": "series-a",
+         "why_surfaced": "AI-powered money management — post-Mint collapse winner · Forerunner backed", "source_url": "https://monarchmoney.com"},
+
+        # ── Social / Community ──────────────────────────────────────────
+        {"brand_name": "Locket Widget", "category": "social", "sub_category": "photo sharing", "accelerator": "YC", "stage": "series-a",
+         "why_surfaced": "Lock screen photo sharing — viral Gen Z social · YC backed · #1 App Store 2022–23", "source_url": "https://locket.camera"},
+        {"brand_name": "Cara", "category": "social", "sub_category": "creative community", "accelerator": "Product Hunt", "stage": "pre-raise",
+         "why_surfaced": "Anti-AI social for artists — 1M users in 3 days after Adobe controversy", "source_url": "https://cara.app"},
+        {"brand_name": "Peanut", "category": "social", "sub_category": "women's health community", "accelerator": "First Round", "stage": "series-a",
+         "why_surfaced": "Community app for women across fertility/motherhood/menopause — 2M+ users", "source_url": "https://peanut-app.io"},
+
+        # ── Marketplace ─────────────────────────────────────────────────
+        {"brand_name": "Fora", "category": "marketplace", "sub_category": "travel agency", "accelerator": "Forerunner", "stage": "series-a",
+         "why_surfaced": "Reinventing travel agency with AI — Forerunner backed · advisor + booking model", "source_url": "https://foratravel.com"},
+        {"brand_name": "Archive", "category": "marketplace", "sub_category": "branded resale", "accelerator": "First Round", "stage": "series-a",
+         "why_surfaced": "Branded resale platform — brands run their own secondhand market · First Round backed", "source_url": "https://archive.com"},
+        {"brand_name": "Vow", "category": "marketplace", "sub_category": "wedding registry", "accelerator": "YC", "stage": "seed",
+         "why_surfaced": "Modern wedding registry replacing The Knot — experience + product mix · YC backed", "source_url": "https://withjoy.com"},
+
+        # ── Education ───────────────────────────────────────────────────
+        {"brand_name": "Synthesis", "category": "education", "sub_category": "AI learning", "accelerator": "General Catalyst", "stage": "series-a",
+         "why_surfaced": "AI-native problem-solving curriculum — grew out of SpaceX school for kids", "source_url": "https://synthesis.com"},
+        {"brand_name": "Osmo", "category": "education", "sub_category": "kids learning", "accelerator": "a16z", "stage": "seed",
+         "why_surfaced": "Physical-digital learning for ages 3-10 — a16z backed · strong retention metrics", "source_url": "https://playosmo.com"},
+    ]
+
+    for c in companies:
+        c.setdefault("source", c.get("accelerator", "Manual"))
+        c.setdefault("cohort", "2026")
+
+    log.info(f"Tech consumer seed loaded: {len(companies)}")
+    return companies
+
+
 def run():
     log.info("=== Prism Precognition Scraper starting ===")
 
@@ -257,6 +333,7 @@ def run():
     # Collect brands from all sources
     all_brands = []
     all_brands.extend(seed_accelerator_brands())
+    all_brands.extend(seed_tech_consumer())
     all_brands.extend(scrape_product_hunt_consumer())
 
     log.info(f"Total brands collected: {len(all_brands)}")

@@ -442,28 +442,50 @@ const ACC_STYLES = {
 
 const EARLY_STAGES = ['pre-raise', 'seed']
 
+// Category taxonomy — determines Brands vs Tech split
+const BRAND_CATS = new Set(['food & beverage', 'beauty', 'wellness', 'fashion', 'sustainability', 'consumer', 'pet'])
+const TECH_CATS  = new Set(['consumer AI', 'health tech', 'fintech', 'social', 'marketplace', 'education', 'mental health', 'pet tech', 'consumer tech', 'longevity'])
+
+const TECH_INVESTOR_STYLES = {
+  'YC':             { bg: '#fff3e0', color: '#e65100' },
+  'a16z':           { bg: '#e8eaf6', color: '#283593' },
+  'Forerunner':     { bg: '#e0f2f1', color: '#00695c' },
+  'First Round':    { bg: '#fce4ec', color: '#880e4f' },
+  'General Catalyst': { bg: '#f3e5f5', color: '#6a1b9a' },
+  'Andreessen Horowitz': { bg: '#e8eaf6', color: '#283593' },
+  'Product Hunt':   { bg: '#fff8e1', color: '#f57f17' },
+}
+
 function SignalsTab() {
-  const [brands, setBrands]     = useState([])
+  const [all, setAll]           = useState([])
   const [loading, setLoading]   = useState(true)
+  const [track, setTrack]       = useState('Brands')  // 'Brands' | 'Tech'
   const [search, setSearch]     = useState('')
   const [catFilter, setCat]     = useState('All')
-  const [stageFilter, setStage] = useState('early') // 'early' = pre-raise + seed only; 'all' = everything
+  const [stageFilter, setStage] = useState('early')
 
   useEffect(() => {
     supabase
       .from('consumer_founders')
       .select('*')
       .order('score', { ascending: false })
-      .limit(100)
+      .limit(150)
       .then(({ data }) => {
-        if (data && data.length > 0) setBrands(data)
+        if (data && data.length > 0) setAll(data)
         setLoading(false)
       })
   }, [])
 
-  const cats = ['All', ...new Set(brands.map(b => b.category).filter(Boolean))]
+  // Split by track
+  const inTrack = all.filter(b => {
+    const cat = b.category || ''
+    if (track === 'Brands') return BRAND_CATS.has(cat) || (!TECH_CATS.has(cat) && !['consumer AI','health tech','fintech','social'].includes(cat))
+    return TECH_CATS.has(cat)
+  })
 
-  const filtered = brands.filter(b => {
+  const cats = ['All', ...new Set(inTrack.map(b => b.category).filter(Boolean))]
+
+  const filtered = inTrack.filter(b => {
     const matchStage = stageFilter === 'all' || EARLY_STAGES.includes(b.stage)
     const matchCat = catFilter === 'All' || b.category === catFilter
     const matchSearch = !search ||
@@ -474,43 +496,58 @@ function SignalsTab() {
 
   const highSignal = filtered.filter(b => b.score >= 60).length
 
+  const brandCount = all.filter(b => BRAND_CATS.has(b.category || '')).length
+  const techCount  = all.filter(b => TECH_CATS.has(b.category || '')).length
+
   return (
     <div className="signals-wrap">
       <div className="signals-header">
         <div>
           <h1>Precognition</h1>
-          <div className="shifts-week">Consumer brands before the raise</div>
+          <div className="shifts-week">
+            {track === 'Brands'
+              ? 'Consumer brand equity — pre-raise + seed'
+              : 'Tech with consumer distribution — pre-raise + seed'}
+          </div>
         </div>
         <div className="header-right">
-          <input className="search-input" type="text" placeholder="Search brands..."
+          <input className="search-input" type="text" placeholder="Search..."
             value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
       {loading && <p className="empty-state">Loading…</p>}
 
-      {!loading && brands.length === 0 && (
-        <p className="empty-state">No brands yet — run the precognition scraper first.</p>
-      )}
-
-      {!loading && brands.length > 0 && (
+      {!loading && (
         <>
-          <div className="stats-row">
-            <span className="stat-item"><strong>{filtered.length}</strong> brands</span>
-            <span className="stat-sep">·</span>
-            <span className="stat-item"><strong>{highSignal}</strong> high signal (60+)</span>
+          {/* Track toggle */}
+          <div className="stats-row" style={{ alignItems: 'center' }}>
+            <div className="view-toggle" style={{ display: 'inline-flex', gap: 4, marginRight: 16 }}>
+              <button
+                className={`filter-btn${track === 'Brands' ? ' active' : ''}`}
+                onClick={() => { setTrack('Brands'); setCat('All') }} type="button">
+                Brands {brandCount > 0 && <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>{brandCount}</span>}
+              </button>
+              <button
+                className={`filter-btn${track === 'Tech' ? ' active' : ''}`}
+                onClick={() => { setTrack('Tech'); setCat('All') }} type="button">
+                Tech {techCount > 0 && <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 4 }}>{techCount}</span>}
+              </button>
+            </div>
+            <span className="stat-sep" style={{ marginRight: 8 }}>·</span>
+            <span className="stat-item"><strong>{filtered.length}</strong> companies</span>
+            {highSignal > 0 && <>
+              <span className="stat-sep">·</span>
+              <span className="stat-item"><strong>{highSignal}</strong> high signal</span>
+            </>}
             <span className="stat-sep">·</span>
             <div className="view-toggle" style={{ display: 'inline-flex', gap: 4 }}>
               <button
                 className={`filter-btn${stageFilter === 'early' ? ' active' : ''}`}
-                onClick={() => setStage('early')} type="button">
-                Pre-raise + Seed
-              </button>
+                onClick={() => setStage('early')} type="button">Pre-raise + Seed</button>
               <button
                 className={`filter-btn${stageFilter === 'all' ? ' active' : ''}`}
-                onClick={() => setStage('all')} type="button">
-                All stages
-              </button>
+                onClick={() => setStage('all')} type="button">All stages</button>
             </div>
           </div>
 
@@ -521,13 +558,19 @@ function SignalsTab() {
             ))}
           </div>
 
-          {filtered.length === 0 && <p className="empty-state">No brands match.</p>}
+          {filtered.length === 0 && (
+            <p className="empty-state">
+              {track === 'Tech' ? 'No tech consumer companies yet — scraper seeding shortly.' : 'No brands match.'}
+            </p>
+          )}
 
           <div className="product-grid">
             {filtered.map(brand => {
               const catStyle   = MARKET_CATEGORY_STYLES[brand.category] || { bg: '#f4f4f1', color: '#555' }
               const stageStyle = STAGE_LABEL[brand.stage] || { bg: '#f4f4f1', color: '#666', label: brand.stage }
-              const accStyle   = ACC_STYLES[brand.accelerator] || { bg: '#f4f4f1', color: '#555' }
+              const accStyle   = track === 'Tech'
+                ? (TECH_INVESTOR_STYLES[brand.accelerator] || { bg: '#f4f4f1', color: '#555' })
+                : (ACC_STYLES[brand.accelerator] || { bg: '#f4f4f1', color: '#555' })
               const scoreColor = SCORE_COLOR(brand.score || 0)
               const signals    = (() => { try { return JSON.parse(brand.signals || '[]') } catch { return [] } })()
 
@@ -1093,15 +1136,28 @@ function IntelTab() {
 // ── Market tab ─────────────────────────────────────────────────
 
 const MARKET_CATEGORY_STYLES = {
+  // Brand track
   'beauty':           { bg: '#fce4ec', color: '#c2185b' },
   'consumer':         { bg: '#e8eaf6', color: '#3949ab' },
   'food & beverage':  { bg: '#fff3e0', color: '#bf5000' },
   'wellness':         { bg: '#e8f5e9', color: '#2e7d32' },
-  'longevity':        { bg: '#e0f7fa', color: '#00695c' },
   'femtech':          { bg: '#fce4ec', color: '#880e4f' },
   'sustainability':   { bg: '#e0f2f1', color: '#004d40' },
   'fashion':          { bg: '#f3e5f5', color: '#7b1fa2' },
   'fitness':          { bg: '#e8f5e9', color: '#1b5e20' },
+  'pet':              { bg: '#fff8e1', color: '#f57f17' },
+  // Tech track
+  'consumer AI':      { bg: '#1a1a1a', color: '#fff' },
+  'health tech':      { bg: '#e0f7fa', color: '#006064' },
+  'longevity':        { bg: '#e0f7fa', color: '#00695c' },
+  'mental health':    { bg: '#ede7f6', color: '#4527a0' },
+  'fintech':          { bg: '#e8eaf6', color: '#283593' },
+  'social':           { bg: '#fce4ec', color: '#ad1457' },
+  'marketplace':      { bg: '#e8f5e9', color: '#1b5e20' },
+  'education':        { bg: '#fff3e0', color: '#e65100' },
+  'consumer tech':    { bg: '#f3e5f5', color: '#6a1b9a' },
+  'pet tech':         { bg: '#fff8e1', color: '#f57f17' },
+  // Intel
   'market_intel':     { bg: '#e3f2fd', color: '#1565c0' },
 }
 
