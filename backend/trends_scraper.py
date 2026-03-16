@@ -66,6 +66,14 @@ NOISE_PATTERNS = [
     "panarin", "artemi", "tommy paul", "stephen colletti", "wunmi",
     "karen mulder", "miss j", "golden globes", "rj decker", "alexis ortega",
     "pucci outfit",  # too celeb-specific unless we detect product
+    # Celebrity names that pollute beauty trends
+    "hudson williams", "jessica alba", "kim kardashian", "kylie jenner",
+    "hailey bieber", "selena gomez", "rihanna", "beyonce", "taylor swift",
+    "blake lively", "jennifer aniston", "jennifer lopez", "gigi hadid",
+    "bella hadid", "zendaya", "billie eilish", "dua lipa", "ariana grande",
+    # Medical / clinical noise
+    "injections penis", "injections olympics", "surgery", "botox injection",
+    "filler injection", "liposuction", "rhinoplasty",
 ]
 
 CONSUMER_SIGNAL_PATTERNS = [

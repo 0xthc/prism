@@ -153,7 +153,7 @@ const SOURCE_STYLES = {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState('Signals')
+  const [activeTab, setActiveTab] = useState('Precognition')
 
   return (
     <div className="app-shell">
@@ -1111,11 +1111,22 @@ const TIER_STYLES = {
   'Tier 3': { bg: '#f4f4f1', color: '#666' },
 }
 
+const BRAND_SIGNAL_SOURCE_STYLES = {
+  'The Spoon':    { bg: '#fff3e0', color: '#bf5000' },
+  'Glossy':       { bg: '#fce4ec', color: '#c2185b' },
+  'Welltodo':     { bg: '#e8f5e9', color: '#2e7d32' },
+  'Vegconomist':  { bg: '#e0f2f1', color: '#00695c' },
+  'NOSH':         { bg: '#e8eaf6', color: '#3949ab' },
+  'product_hunt': { bg: '#fff8e1', color: '#f57f17' },
+}
+
 function MarketTab() {
-  const [section, setSection] = useState('Fund Theses')
-  const [funds, setFunds] = useState([])
-  const [intel, setIntel] = useState([])
+  const [section, setSection] = useState('Raises')
+  const [funds, setFunds]     = useState([])
+  const [news, setNews]       = useState([])
+  const [intel, setIntel]     = useState([])
   const [loading, setLoading] = useState(true)
+  const [catFilter, setCat]   = useState('All')
 
   useEffect(() => {
     Promise.all([
@@ -1123,29 +1134,39 @@ function MarketTab() {
         .from('fund_raises')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(30),
+        .limit(40),
+      supabase
+        .from('brand_signals')
+        .select('*')
+        .neq('category', 'market_intel')
+        .order('detected_at', { ascending: false })
+        .limit(100),
       supabase
         .from('brand_signals')
         .select('*')
         .eq('category', 'market_intel')
         .order('detected_at', { ascending: false })
-        .limit(30),
-    ]).then(([fundsRes, intelRes]) => {
+        .limit(40),
+    ]).then(([fundsRes, newsRes, intelRes]) => {
       if (fundsRes.data) setFunds(fundsRes.data)
+      if (newsRes.data)  setNews(newsRes.data)
       if (intelRes.data) setIntel(intelRes.data)
       setLoading(false)
     })
   }, [])
+
+  const newsCats = ['All', ...new Set(news.map(n => n.category).filter(Boolean))]
+  const filteredNews = catFilter === 'All' ? news : news.filter(n => n.category === catFilter)
 
   return (
     <div className="signals-wrap">
       <div className="signals-header">
         <div>
           <h1>Market</h1>
-          <div className="shifts-week">Consumer deal flow · Fund theses · VC intel</div>
+          <div className="shifts-week">Consumer deal flow · Industry news · VC intel</div>
         </div>
         <div className="view-toggle">
-          {['Fund Theses', 'VC Intel'].map(s => (
+          {['Raises', 'News', 'Intel'].map(s => (
             <button
               key={s}
               className={`filter-btn${section === s ? ' active' : ''}`}
@@ -1158,12 +1179,18 @@ function MarketTab() {
 
       {loading && <p className="empty-state">Loading…</p>}
 
-      {!loading && section === 'Fund Theses' && (
+      {!loading && section === 'Raises' && (
         <>
           <div className="stats-row">
-            <span className="stat-item"><strong>{funds.length}</strong> fund signals tracked</span>
+            <span className="stat-item"><strong>{funds.length}</strong> raise signals</span>
+            {funds.some(f => f.fund_size_m) && (
+              <>
+                <span className="stat-sep">·</span>
+                <span className="stat-item"><strong>{funds.filter(f => f.fund_size_m).length}</strong> with size</span>
+              </>
+            )}
           </div>
-          {funds.length === 0 && <p className="empty-state">No fund signals yet — scraper runs hourly.</p>}
+          {funds.length === 0 && <p className="empty-state">No raise signals yet — scraper runs hourly.</p>}
           <div className="product-grid">
             {funds.map(f => {
               const cats = f.categories || ['consumer']
@@ -1172,19 +1199,19 @@ function MarketTab() {
               return (
                 <div key={f.id} className="product-card">
                   <div className="card-top">
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color }}>
                         {primaryCat}
                       </span>
                       <h3 className="product-name" style={{ fontSize: 13 }}>{f.fund_name}</h3>
                     </div>
                     {f.fund_size_m && (
-                      <span className="pmf-badge" style={{ background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>
+                      <span className="pmf-badge" style={{ background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7', whiteSpace: 'nowrap' }}>
                         ${f.fund_size_m}M
                       </span>
                     )}
                   </div>
-                  {f.thesis && <p className="differentiation">{f.thesis.slice(0, 280)}</p>}
+                  {f.thesis && <p className="differentiation" style={{ fontSize: 12 }}>{f.thesis.slice(0, 240)}</p>}
                   <div className="card-meta">
                     <span className="meta-source">{f.source}</span>
                     <span className="meta-date">{formatDate(f.announced_date || f.created_at)}</span>
@@ -1192,7 +1219,7 @@ function MarketTab() {
                   {f.source_url && (
                     <a href={f.source_url} target="_blank" rel="noopener noreferrer"
                        style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
-                      ↗ {new URL(f.source_url).hostname.replace('www.','')}
+                      ↗ {(() => { try { return new URL(f.source_url).hostname.replace('www.','') } catch { return 'Read' } })()}
                     </a>
                   )}
                 </div>
@@ -1202,7 +1229,55 @@ function MarketTab() {
         </>
       )}
 
-      {!loading && section === 'VC Intel' && (
+      {!loading && section === 'News' && (
+        <>
+          <div className="stats-row">
+            <span className="stat-item"><strong>{filteredNews.length}</strong> articles</span>
+          </div>
+          <div className="filter-row">
+            {newsCats.map(c => (
+              <button key={c} className={`filter-btn${catFilter === c ? ' active' : ''}`}
+                onClick={() => setCat(c)} type="button">{c}</button>
+            ))}
+          </div>
+          {filteredNews.length === 0 && <p className="empty-state">No articles yet — scraper runs hourly.</p>}
+          <div className="product-grid">
+            {filteredNews.map(item => {
+              const catStyle = MARKET_CATEGORY_STYLES[item.category] || { bg: '#f4f4f1', color: '#555' }
+              const srcStyle = BRAND_SIGNAL_SOURCE_STYLES[item.founder || item.signal_type] || { bg: '#f4f4f1', color: '#666' }
+              // Try to find source from signal_type or founder
+              const sourceName = item.founder || item.signal_type || 'RSS'
+              return (
+                <div key={item.id} className="product-card">
+                  <div className="card-top">
+                    <div style={{ flex: 1 }}>
+                      <span className="cat-badge" style={{ background: catStyle.bg, color: catStyle.color }}>
+                        {item.category}
+                      </span>
+                      <h3 className="product-name" style={{ fontSize: 13, marginTop: 6 }}>{item.brand_name}</h3>
+                    </div>
+                  </div>
+                  {item.what && (
+                    <p className="differentiation" style={{ fontSize: 12 }}>{item.what.slice(0, 240)}</p>
+                  )}
+                  <div className="card-meta">
+                    <span className="meta-source">{sourceName}</span>
+                    <span className="meta-date">{formatDate(item.detected_at)}</span>
+                  </div>
+                  {item.source_url && (
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer"
+                       style={{ fontSize: 11, color: '#888', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                      ↗ Read
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {!loading && section === 'Intel' && (
         <>
           <div className="stats-row">
             <span className="stat-item"><strong>{intel.length}</strong> newsletter signals</span>

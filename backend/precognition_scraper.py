@@ -102,9 +102,22 @@ def scrape_product_hunt_consumer():
     """Product Hunt RSS — consumer launches in the last 7 days."""
     import feedparser
     log.info("Scraping Product Hunt for consumer launches...")
-    CONSUMER_KW = ["food", "drink", "beauty", "wellness", "health", "fitness",
-                   "skincare", "supplement", "beverage", "fashion", "lifestyle",
-                   "sleep", "gut", "protein", "snack", "clean", "natural"]
+    # Require unambiguous consumer product signals — no generic "health" or "fitness" (B2B software uses these too)
+    CONSUMER_KW = [
+        "food", "drink", "snack", "beverage", "recipe",  # food & drink
+        "skincare", "haircare", "beauty", "cosmetic", "makeup", "fragrance",  # beauty
+        "supplement", "vitamin", "gut health", "probiotic", "protein powder",  # wellness supplements
+        "apparel", "fashion", "clothing", "streetwear", "accessories",  # fashion
+        "pet food", "dog food", "cat food",  # pet
+        "clean beauty", "natural deodorant", "organic",  # clean consumer
+    ]
+    # Reject if these appear — they indicate B2B/tech, not consumer brands
+    B2B_REJECT_KW = [
+        "api", "saas", "b2b", "developer", "coding", "software", "platform",
+        "dashboard", "analytics", "crm", "erp", "enterprise", "startup tool",
+        "data search", "database", "ai model", "llm", "copilot", "sdk", "cli",
+        "chrome extension", "browser", "plugin", "productivity", "automation",
+    ]
     results = []
     try:
         feed = feedparser.parse("https://www.producthunt.com/feed")
@@ -112,7 +125,7 @@ def scrape_product_hunt_consumer():
             title   = entry.get("title", "")
             summary = entry.get("summary", "")
             text    = (title + " " + summary).lower()
-            if any(kw in text for kw in CONSUMER_KW):
+            if any(kw in text for kw in CONSUMER_KW) and not any(kw in text for kw in B2B_REJECT_KW):
                 cat = "consumer"
                 for kw in ["food", "drink", "snack", "beverage"]:
                     if kw in text: cat = "food & beverage"; break
