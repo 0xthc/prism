@@ -15,6 +15,7 @@ import logging
 import requests
 from datetime import datetime, timezone
 from supabase import create_client, Client
+from portfolio_scrapers import scrape_all_portfolios
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -386,7 +387,7 @@ def run():
 
     # Collect brands from all sources
     all_brands = []
-    all_brands.extend(seed_accelerator_brands())
+    all_brands.extend(scrape_all_portfolios())   # live portfolio scrape + curated fallback
     all_brands.extend(seed_tech_consumer())
     all_brands.extend(scrape_product_hunt_consumer())
 
