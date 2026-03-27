@@ -30,11 +30,26 @@ HEADERS = {
 # ── Accelerator tier weights ───────────────────────────────────
 
 ACCELERATOR_TIERS = {
+    # Food & beverage specialists
     "Chobani Incubator":   {"score": 20, "focus": "food & beverage"},
     "SKS Accelerator":     {"score": 20, "focus": "food & beverage"},
+    # DTC-native builders — brand creation from scratch
+    "Science Inc.":        {"score": 19, "focus": "consumer"},
+    "Harry's Labs":        {"score": 18, "focus": "consumer"},
+    # Trend-led platforms — macro consumer shifts
+    "HumanCo":             {"score": 17, "focus": "health & sustainability"},
+    # Retail & celebrity-driven — mass-market reach
+    "Maesa":               {"score": 15, "focus": "beauty"},
+    "Beach House Group":   {"score": 15, "focus": "consumer"},
+    # General consumer accelerators
     "Techstars Consumer":  {"score": 15, "focus": "consumer"},
     "Target Accelerator":  {"score": 15, "focus": "consumer"},
     "a16z Cultural":       {"score": 18, "focus": "consumer"},
+    # Operator / venture studios — co-build with founders
+    "Prehype":             {"score": 14, "focus": "consumer"},
+    # Corporate ecosystems — scaling & distribution
+    "Unilever Foundry":    {"score": 12, "focus": "consumer"},
+    # Events & discovery
     "Expo West":           {"score": 12, "focus": "food & beverage"},
     "Product Hunt":        {"score": 10, "focus": "consumer"},
 }
@@ -80,6 +95,34 @@ def seed_accelerator_brands():
         {"brand_name": "Sunup Oats", "category": "food & beverage", "sub_category": "functional oats", "accelerator": "Expo West", "stage": "pre-raise", "cohort": "2026"},
         {"brand_name": "HEYBAR", "category": "food & beverage", "sub_category": "plant protein", "accelerator": "Expo West", "stage": "pre-raise", "cohort": "2026"},
         {"brand_name": "Morinaga My/Mochi", "category": "food & beverage", "sub_category": "ice cream", "accelerator": "Expo West", "stage": "series-a", "cohort": "2026"},
+
+        # ── Science Inc. (DTC-native builders) ─────────────────────────
+        {"brand_name": "MeUndies", "category": "apparel", "sub_category": "DTC underwear", "accelerator": "Science Inc.", "stage": "series-a"},
+        {"brand_name": "Dollar Shave Club", "category": "personal care", "sub_category": "razors", "accelerator": "Science Inc.", "stage": "acquired"},
+        {"brand_name": "Liquid I.V.", "category": "food & beverage", "sub_category": "hydration", "accelerator": "Science Inc.", "stage": "acquired"},
+
+        # ── Harry's Labs (DTC-native builders) ─────────────────────────
+        {"brand_name": "Flamingo", "category": "personal care", "sub_category": "women's grooming", "accelerator": "Harry's Labs", "stage": "series-a"},
+        {"brand_name": "Cat Person", "category": "pet", "sub_category": "cat care", "accelerator": "Harry's Labs", "stage": "seed"},
+
+        # ── Maesa (retail & celebrity-driven) ──────────────────────────
+        {"brand_name": "Flower Beauty", "category": "beauty", "sub_category": "mass cosmetics", "accelerator": "Maesa", "stage": "series-a"},
+        {"brand_name": "Kristin Ess Hair", "category": "beauty", "sub_category": "haircare", "accelerator": "Maesa", "stage": "series-a"},
+
+        # ── Beach House Group (retail & celebrity-driven) ───────────────
+        {"brand_name": "Cay Skin", "category": "beauty", "sub_category": "skin care", "accelerator": "Beach House Group", "stage": "seed"},
+        {"brand_name": "Pattern Beauty", "category": "beauty", "sub_category": "textured hair", "accelerator": "Beach House Group", "stage": "series-a"},
+
+        # ── HumanCo (trend-led, health & sustainability) ────────────────
+        {"brand_name": "Halo Top", "category": "food & beverage", "sub_category": "better-for-you ice cream", "accelerator": "HumanCo", "stage": "acquired"},
+        {"brand_name": "Vital Farms", "category": "food & beverage", "sub_category": "ethical dairy", "accelerator": "HumanCo", "stage": "public"},
+
+        # ── Prehype (operator/venture studio) ──────────────────────────
+        {"brand_name": "Headspace", "category": "health & wellness", "sub_category": "mental wellness", "accelerator": "Prehype", "stage": "acquired"},
+
+        # ── Unilever Foundry (corporate ecosystem) ──────────────────────
+        {"brand_name": "Olly", "category": "health & wellness", "sub_category": "vitamins & supplements", "accelerator": "Unilever Foundry", "stage": "acquired"},
+        {"brand_name": "Graze", "category": "food & beverage", "sub_category": "healthy snacks", "accelerator": "Unilever Foundry", "stage": "acquired"},
     ]
 
     url_map = {
@@ -87,6 +130,13 @@ def seed_accelerator_brands():
         "SKS Accelerator":    "https://sksaccelerator.com",
         "Techstars Consumer": "https://www.techstars.com/portfolio",
         "Target Accelerator": "https://corporate.target.com/sustainability-governance/society/target-forward/accelerators",
+        "Science Inc.":       "https://www.scienceinc.com",
+        "Harry's Labs":       "https://www.harrys.com/en/us/labs",
+        "Maesa":              "https://www.maesa.com",
+        "Beach House Group":  "https://beachhousegroup.com",
+        "HumanCo":            "https://www.humanco.com",
+        "Prehype":            "https://prehype.com",
+        "Unilever Foundry":   "https://www.unilever.com/planet-and-society/unilever-foundry",
         "Expo West":          "https://www.expowest.com",
     }
 
