@@ -271,138 +271,186 @@ const SRC_STYLES = {
   'Newsletter':  { bg: '#fff3e0', color: '#bf5000' },
 }
 
+// ── Saturation helpers ─────────────────────────────────────────
+const MATURE_STAGES = new Set(['series-a', 'series-b', 'acquired', 'public'])
+
+function saturationSignal(brands) {
+  const count   = brands.length
+  const matureN = brands.filter(b => MATURE_STAGES.has(b.stage)).length
+  const score   = count + matureN * 2
+  if (score <= 3)  return { label: 'Emerging',  bg: '#e3f2fd', color: '#1565c0', score }
+  if (score <= 8)  return { label: 'Forming',   bg: '#fff3e0', color: '#bf5000', score }
+  if (score <= 14) return { label: 'Crowded',   bg: '#ffebee', color: '#b71c1c', score }
+  return             { label: 'Saturated',       bg: '#f3e5f5', color: '#6a1b9a', score }
+}
+
 function PatternsTab() {
+  const [brands, setBrands]     = useState([])
+  const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
-  const [catFilter, setCatFilter] = useState('All')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [sortBy, setSortBy]     = useState('count')
 
-  const categories = ['All', ...Array.from(new Set(PATTERNS.map(p => p.category)))]
-  const statuses   = ['All', 'Established', 'Forming', 'Emerging']
+  useEffect(() => {
+    supabase
+      .from('consumer_founders')
+      .select('*')
+      .order('score', { ascending: false })
+      .then(({ data }) => { if (data) setBrands(data); setLoading(false) })
+  }, [])
 
-  const visible = useMemo(() => PATTERNS.filter(p =>
-    (catFilter === 'All' || p.category === catFilter) &&
-    (statusFilter === 'All' || p.status === statusFilter)
-  ), [catFilter, statusFilter])
+  const clusters = useMemo(() => {
+    const map = {}
+    for (const b of brands) {
+      const cat = b.category || 'Other'
+      if (!map[cat]) map[cat] = []
+      map[cat].push(b)
+    }
+    return Object.entries(map).map(([category, items]) => {
+      const subMap = {}
+      for (const b of items) {
+        const sub = b.sub_category || 'General'
+        if (!subMap[sub]) subMap[sub] = []
+        subMap[sub].push(b)
+      }
+      const subClusters = Object.entries(subMap).sort((a, b) => b[1].length - a[1].length)
+      const avgScore    = Math.round(items.reduce((s, b) => s + (b.score || 0), 0) / items.length)
+      const sat         = saturationSignal(items)
+      return { category, items, subClusters, avgScore, sat }
+    }).sort((a, b) => {
+      if (sortBy === 'score')      return b.avgScore - a.avgScore
+      if (sortBy === 'saturation') return b.sat.score - a.sat.score
+      return b.items.length - a.items.length
+    })
+  }, [brands, sortBy])
 
-  const active = selected ? PATTERNS.find(p => p.id === selected) : null
+  const active = selected ? clusters.find(c => c.category === selected) : null
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 48px)', color: '#bbb', fontSize: 13 }}>
+      Loading clusters…
+    </div>
+  )
 
   return (
-    <div className="signals-wrap" style={{ display: 'flex', gap: 0, padding: 0, alignItems: 'stretch', height: 'calc(100vh - 48px)' }}>
-      {/* Left panel */}
-      <div style={{ width: 340, flexShrink: 0, borderRight: '1px solid #e8e8e5', overflowY: 'auto', padding: '20px 16px' }}>
-        <div style={{ marginBottom: 16 }}>
-          <h1 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700 }}>Patterns</h1>
-          <div style={{ fontSize: 11, color: '#888' }}>Consumer thesis clusters — recurring signals across categories</div>
-        </div>
-
-        {/* Filters */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 9, color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Status</div>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {statuses.map(s => {
-              const ss = STATUS_STYLES[s] || {}
-              const active = statusFilter === s
-              return (
-                <button key={s} onClick={() => setStatusFilter(s)} style={{
-                  padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
-                  border: active ? 'none' : '1px solid #e0e0dc',
-                  background: active ? (ss.bg || '#1a1a1a') : '#fff',
-                  color: active ? (ss.color || '#fff') : '#666',
-                }}>{s}</button>
-              )
-            })}
-          </div>
-        </div>
+    <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', height: 'calc(100vh - 48px)' }}>
+      <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8e5', overflowY: 'auto', padding: '20px 14px' }}>
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 9, color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Category</div>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {categories.map(c => {
-              const cs = CATEGORY_STYLES[c] || {}
-              const isActive = catFilter === c
-              return (
-                <button key={c} onClick={() => setCatFilter(c)} style={{
-                  padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
-                  border: isActive ? 'none' : '1px solid #e0e0dc',
-                  background: isActive ? (cs.bg || '#1a1a1a') : '#fff',
-                  color: isActive ? (cs.color || '#fff') : '#666',
-                }}>{c}</button>
-              )
-            })}
-          </div>
+          <h1 style={{ margin: '0 0 3px', fontSize: 16, fontWeight: 700 }}>Patterns</h1>
+          <div style={{ fontSize: 11, color: '#888' }}>{clusters.length} clusters · {brands.length} brands</div>
         </div>
-
-        {/* Pattern list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {visible.map(p => {
-            const ss = STATUS_STYLES[p.status] || {}
-            const cs = CATEGORY_STYLES[p.category] || {}
-            const isSelected = selected === p.id
-            return (
-              <div key={p.id} onClick={() => setSelected(isSelected ? null : p.id)} style={{
-                background: isSelected ? '#fafaf8' : '#fff',
-                border: isSelected ? '1.5px solid #1a1a1a' : '1px solid #e8e8e5',
-                borderRadius: 10, padding: '11px 13px', cursor: 'pointer',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a', lineHeight: 1.3, flex: 1 }}>{p.name}</div>
-                  <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 7px', borderRadius: 20, marginLeft: 6, flexShrink: 0, background: ss.bg, color: ss.color }}>{p.status}</span>
-                </div>
-                <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, marginBottom: 6 }}>{p.thesis}</div>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                  <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 20, background: cs.bg, color: cs.color, fontWeight: 600 }}>{p.category}</span>
-                  <span style={{ fontSize: 10, color: '#aaa' }}>{p.signals.length} signals</span>
-                </div>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+          {['count', 'score', 'saturation'].map(s => (
+            <button key={s} onClick={() => setSortBy(s)} style={{
+              padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
+              background: sortBy === s ? '#1a1a1a' : '#fff',
+              color:      sortBy === s ? '#fff'    : '#666',
+              border:     sortBy === s ? 'none'    : '1px solid #e0e0dc',
+            }}>
+              {s === 'count' ? 'Size' : s === 'score' ? 'Score' : 'Saturation'}
+            </button>
+          ))}
+        </div>
+        {clusters.map(c => {
+          const isSel = selected === c.category
+          return (
+            <div key={c.category} onClick={() => setSelected(isSel ? null : c.category)} style={{
+              background: isSel ? '#fafaf8' : '#fff',
+              border:     isSel ? '1.5px solid #1a1a1a' : '1px solid #e8e8e5',
+              borderRadius: 10, padding: '11px 12px', cursor: 'pointer', marginBottom: 7,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                <div style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a', flex: 1, lineHeight: 1.3 }}>{c.category}</div>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, marginLeft: 6, flexShrink: 0, background: c.sat.bg, color: c.sat.color }}>
+                  {c.sat.label}
+                </span>
               </div>
-            )
-          })}
-        </div>
+              <div style={{ fontSize: 10, color: '#999', marginBottom: 6 }}>
+                {c.items.length} brands · avg {c.avgScore} · {c.subClusters.length} niches
+              </div>
+              <div style={{ height: 3, background: '#f0f0ee', borderRadius: 2 }}>
+                <div style={{ height: '100%', width: `${Math.min(100, (c.sat.score / 16) * 100)}%`, background: c.sat.color, borderRadius: 2 }} />
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Right panel — detail */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 28px' }}>
         {!active ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#bbb', fontSize: 13 }}>
-            Select a pattern to explore
+            Select a cluster to explore
           </div>
         ) : (
-          <div style={{ maxWidth: 640 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: STATUS_STYLES[active.status]?.bg, color: STATUS_STYLES[active.status]?.color, fontWeight: 700 }}>{active.status}</span>
-              <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: CATEGORY_STYLES[active.category]?.bg, color: CATEGORY_STYLES[active.category]?.color, fontWeight: 600 }}>{active.category}</span>
+          <div style={{ maxWidth: 700 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: active.sat.bg, color: active.sat.color }}>
+                {active.sat.label}
+              </span>
+              <span style={{ fontSize: 11, color: '#aaa' }}>{active.items.length} brands · avg score {active.avgScore}</span>
             </div>
-            <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.3 }}>{active.name}</h2>
-            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#444', lineHeight: 1.7 }}>{active.thesis}</p>
+            <h2 style={{ margin: '0 0 16px', fontSize: 20, fontWeight: 700 }}>{active.category}</h2>
 
-            {/* Signals */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 10 }}>Supporting signals</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {active.signals.map((s, i) => {
-                  const ss = SRC_STYLES[s.src] || SRC_STYLES['Newsletter']
+            <div style={{ background: '#fafaf8', border: '1px solid #e8e8e5', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 10 }}>
+                Saturation breakdown
+              </div>
+              <div style={{ display: 'flex', gap: 24, marginBottom: 10 }}>
+                {['pre-raise', 'seed', 'series-a', 'acquired'].map(stage => {
+                  const n  = active.items.filter(b => b.stage === stage).length
+                  const sl = STAGE_LABEL[stage] || { bg: '#f4f4f1', color: '#555', label: stage }
                   return (
-                    <div key={i} style={{ background: '#fafaf8', borderRadius: 8, padding: '10px 13px', border: '1px solid #e8e8e5' }}>
-                      <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a' }}>{s.label}</span>
-                        <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 20, background: ss.bg, color: ss.color, fontWeight: 600 }}>{s.src}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>{s.detail}</div>
+                    <div key={stage} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: sl.color }}>{n}</div>
+                      <div style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>{sl.label || stage}</div>
                     </div>
                   )
                 })}
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#ccc', marginBottom: 3 }}>
+                <span>Emerging</span><span>Saturated</span>
+              </div>
+              <div style={{ height: 5, background: '#eee', borderRadius: 3 }}>
+                <div style={{ height: '100%', width: `${Math.min(100, (active.sat.score / 16) * 100)}%`, background: active.sat.color, borderRadius: 3 }} />
+              </div>
             </div>
 
-            {/* Implication */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 8 }}>Investment implication</div>
-              <p style={{ margin: 0, fontSize: 12, color: '#333', lineHeight: 1.7, background: '#f8f8f6', borderRadius: 8, padding: '12px 14px', borderLeft: '3px solid #1a1a1a' }}>{active.implication}</p>
-            </div>
-
-            {/* Watch for */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 8 }}>Watch for next</div>
-              <p style={{ margin: 0, fontSize: 12, color: '#666', lineHeight: 1.6, fontStyle: 'italic' }}>{active.watchFor}</p>
-            </div>
+            {active.subClusters.map(([sub, items]) => {
+              const subSat = saturationSignal(items)
+              return (
+                <div key={sub} style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#333', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{sub}</div>
+                    <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 20, background: subSat.bg, color: subSat.color, fontWeight: 600 }}>{subSat.label}</span>
+                    <span style={{ fontSize: 10, color: '#bbb' }}>{items.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {items.sort((a, b) => (b.score || 0) - (a.score || 0)).map(b => {
+                      const sl = STAGE_LABEL[b.stage] || { bg: '#f4f4f1', color: '#888', label: b.stage }
+                      return (
+                        <div key={b.id} style={{ background: '#fff', border: '1px solid #e8e8e5', borderRadius: 8, padding: '9px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3 }}>
+                              {b.source_url ? (
+                                <a href={b.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a1a1a', textDecoration: 'none' }}>
+                                  {b.brand_name} <span style={{ color: '#aaa', fontWeight: 400 }}>↗</span>
+                                </a>
+                              ) : b.brand_name}
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 20, background: sl.bg, color: sl.color, fontWeight: 600 }}>{sl.label || b.stage}</span>
+                              <span style={{ fontSize: 10, color: '#bbb' }}>{b.accelerator}</span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(b.score || 0), minWidth: 28, textAlign: 'right' }}>
+                            {b.score || '—'}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
