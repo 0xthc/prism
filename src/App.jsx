@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from './supabase.js'
 
-const TABS = ['Precognition', 'Market', 'Trends', 'Intel']
+const TABS = ['Precognition', 'Patterns', 'Market', 'Trends', 'Intel']
 
 const CATEGORIES = [
   'Food & Drink',
@@ -173,9 +173,10 @@ function App() {
         </div>
       </nav>
       {activeTab === 'Precognition' && <SignalsTab />}
-      {activeTab === 'Market'       && <MarketTab />}
-      {activeTab === 'Trends'       && <TrendsTab />}
-      {activeTab === 'Intel'        && <IntelTab />}
+      {activeTab === 'Patterns'    && <PatternsTab />}
+      {activeTab === 'Market'      && <MarketTab />}
+      {activeTab === 'Trends'      && <TrendsTab />}
+      {activeTab === 'Intel'       && <IntelTab />}
     </div>
   )
 }
