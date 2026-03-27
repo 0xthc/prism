@@ -272,14 +272,32 @@ const SRC_STYLES = {
 }
 
 // ── Fund intel metadata ────────────────────────────────────────
-const VC_FUNDS = new Set(['Forerunner', 'First Round', 'a16z', 'General Catalyst', 'YC'])
+const VC_FUNDS = new Set(['Forerunner', 'Imaginary Ventures', 'Coefficient Capital', 'VMG Partners', 'First Round', 'a16z', 'General Catalyst', 'YC'])
 
 const FUND_META = {
   'Forerunner': {
-    thesis: 'Brands that define how modern people live — commerce, identity, and the infrastructure of everyday life.',
-    focus: ['beauty', 'home & lifestyle', 'marketplace', 'fintech', 'consumer AI'],
+    thesis: 'Brands that define how modern people live — commerce, identity, and the infrastructure of everyday life. Bets on category-creating DTC brands with strong community loops.',
+    focus: ['beauty', 'health tech', 'home & lifestyle', 'fintech', 'consumer AI'],
     gp: 'Kirsten Green',
     stage: 'Seed → Series B',
+  },
+  'Imaginary Ventures': {
+    thesis: 'Premium direct-to-consumer brands with editorial taste and cultural resonance. Backs the next generation of fashion, beauty, and home brands built around aspiration and identity.',
+    focus: ['fashion', 'beauty', 'home & lifestyle', 'jewelry & accessories'],
+    gp: 'Natalie Massenet & Nick Brown',
+    stage: 'Seed → Series B',
+  },
+  'Coefficient Capital': {
+    thesis: 'CPG consumer specialists — food, beverage, and beauty brands with authentic ingredients and clear consumer demand signal. Wins early on taste and velocity.',
+    focus: ['food & beverage', 'beauty', 'health & wellness'],
+    gp: 'Taylor Black & Matthew Weiss',
+    stage: 'Seed → Series A',
+  },
+  'VMG Partners': {
+    thesis: 'Growth equity for authentic consumer brands with category leadership. Backs proven brands at inflection — scaling distribution, not proving product-market fit.',
+    focus: ['food & beverage', 'beauty', 'health tech', 'pet'],
+    gp: 'Casey Sheahan',
+    stage: 'Series A → Growth',
   },
   'First Round': {
     thesis: 'Seed-stage, founder-led companies across consumer health, fintech, and marketplace — bet on the team before the market.',

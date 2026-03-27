@@ -32,25 +32,34 @@ HEADERS = {
 # ── Accelerator tier weights ───────────────────────────────────
 
 ACCELERATOR_TIERS = {
-    # Food & beverage specialists
+    # ── Consumer VC funds ──────────────────────────────────────────────
+    "Forerunner":          {"score": 22, "focus": "consumer"},
+    "Imaginary Ventures":  {"score": 21, "focus": "fashion & beauty"},
+    "First Round":         {"score": 20, "focus": "consumer"},
+    "Coefficient Capital": {"score": 20, "focus": "food & beverage"},
+    "a16z":                {"score": 20, "focus": "consumer"},
+    "General Catalyst":    {"score": 19, "focus": "health tech"},
+    "VMG Partners":        {"score": 18, "focus": "authentic consumer brands"},
+    "YC":                  {"score": 18, "focus": "consumer"},
+    # ── Food & beverage specialists ────────────────────────────────────
     "SKS Accelerator":     {"score": 20, "focus": "food & beverage"},
-    # DTC-native builders — brand creation from scratch
+    # ── DTC-native builders ────────────────────────────────────────────
     "Science Inc.":        {"score": 19, "focus": "consumer"},
     "Harry's Labs":        {"score": 18, "focus": "consumer"},
-    # Trend-led platforms — macro consumer shifts
+    # ── Trend-led platforms ────────────────────────────────────────────
     "HumanCo":             {"score": 17, "focus": "health & sustainability"},
-    # Retail & celebrity-driven — mass-market reach
+    # ── Retail & celebrity-driven ──────────────────────────────────────
     "Maesa":               {"score": 15, "focus": "beauty"},
     "Beach House Group":   {"score": 15, "focus": "consumer"},
-    # General consumer accelerators
+    # ── General consumer accelerators ─────────────────────────────────
     "Techstars Consumer":  {"score": 15, "focus": "consumer"},
     "Target Accelerator":  {"score": 15, "focus": "consumer"},
     "a16z Cultural":       {"score": 18, "focus": "consumer"},
-    # Operator / venture studios — co-build with founders
+    # ── Operator / venture studios ─────────────────────────────────────
     "Prehype":             {"score": 14, "focus": "consumer"},
-    # Corporate ecosystems — scaling & distribution
+    # ── Corporate ecosystems ───────────────────────────────────────────
     "Unilever Foundry":    {"score": 12, "focus": "consumer"},
-    # Events & discovery
+    # ── Events & discovery ─────────────────────────────────────────────
     "Expo West":           {"score": 12, "focus": "food & beverage"},
     "Product Hunt":        {"score": 10, "focus": "consumer"},
 }

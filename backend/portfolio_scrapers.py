@@ -1,17 +1,21 @@
 """
-Portfolio scrapers for consumer incubators.
+Portfolio scrapers for consumer incubators + VC funds.
 
 Approach per source:
-  - Maesa       → HTML parse (static nav, reliable)
-  - HumanCo     → HTML parse (static page, reliable)
-  - Science Inc. → curated (JS-rendered, not scrapable)
-  - Harry's Labs → curated (JS-rendered, not scrapable)
-  - Beach House  → curated (site intermittently down)
-  - Prehype      → curated (internal venture studio)
-  - Unilever     → curated (too large, filter to relevant consumer brands)
-  - SKS          → curated (JS-rendered)
-  - Techstars    → curated (JS-rendered)
-  - Target Acc.  → curated (JS-rendered)
+  - Maesa              → HTML parse (static nav, reliable)
+  - HumanCo            → HTML parse (static page, reliable)
+  - Forerunner         → HTML parse (server-side rendered h2 + category tags)
+  - Science Inc.       → curated (JS-rendered, not scrapable)
+  - Harry's Labs       → curated (JS-rendered, not scrapable)
+  - Beach House        → curated (site intermittently down)
+  - Prehype            → curated (internal venture studio)
+  - Unilever           → curated (too large, filter to relevant consumer brands)
+  - SKS                → curated (JS-rendered)
+  - Techstars          → curated (JS-rendered)
+  - Target Acc.        → curated (JS-rendered)
+  - Imaginary Ventures → curated (JS-rendered, Natalie Massenet's consumer fund)
+  - Coefficient Capital→ curated (JS-rendered, CPG consumer specialists)
+  - VMG Partners       → curated (JS-rendered, authentic consumer brand growth equity)
 
 All functions return a list of brand dicts compatible with consumer_founders schema.
 Updated: March 2026.
@@ -240,17 +244,180 @@ def curated_target_accelerator():
 
 # ── Aggregator ─────────────────────────────────────────────────
 
+# ── VC Fund scrapers ──────────────────────────────────────────
+
+def scrape_forerunner():
+    """
+    Forerunner Ventures — live scrape of Brands & Experiences portfolio.
+    Server-side rendered; company names in <h2> tags with category spans.
+    URL: https://www.forerunnerventures.com/investments
+    """
+    html = _get("https://www.forerunnerventures.com/investments", timeout=12)
+    if not html:
+        return []
+
+    # Each investment is an <h2> block followed by category + URL
+    blocks = re.findall(r'<h2[^>]*>(.+?)</h2>(.*?)(?=<h2|$)', html, re.DOTALL)
+    brands = []
+    for name_raw, rest in blocks:
+        name = re.sub(r'<[^>]+>', '', name_raw).strip()
+        name = name.replace('&amp;', '&').replace('&#x27;', "'")
+        if not name:
+            continue
+        # Only consumer-facing portfolio companies
+        cat_m = re.search(r'<span[^>]*text-lavender[^>]*>([^<]+)</span>', rest)
+        category_tag = cat_m.group(1).strip() if cat_m else ''
+        if 'Brands' not in category_tag and 'Experiences' not in category_tag:
+            continue
+        # URL
+        url_m = re.search(r'href=["\']([^"\']+)["\'][^>]*>Visit', rest)
+        url = url_m.group(1).strip() if url_m else ''
+        # Year
+        yr_m = re.search(r'font-mono[^>]*>(\d{4}|Pre-\d{4})', rest)
+        year = yr_m.group(1) if yr_m else ''
+        brands.append({
+            "brand_name":   name,
+            "category":     _forerunner_category(name),
+            "sub_category": _forerunner_sub(name),
+            "stage":        "series-a",
+            "source_url":   url,
+            "cohort":       year or "2026",
+        })
+    log.info(f"Forerunner live scrape: {len(brands)} consumer brands")
+    return brands
+
+
+def _forerunner_category(name):
+    HEALTH = {"Curology", "Headway", "Hims & Hers Health", "Joy", "Fay", "Oura",
+              "Prenuvo", "Ritual", "Teal Health", "Superpower", "Dutch"}
+    PET   = {"The Farmer's Dog", "Dutch"}
+    HOME  = {"Homebound", "Wonder"}
+    FOOD  = {"The Feed", "Magna"}
+    KIDS  = {"KiwiCo"}
+    FIN   = {"Chime", "Arrived Homes", "Atticus", "Basic Capital", "Zola"}
+    BEAUTY = {"Glossier", "Prose", "Dollar Shave Club"}
+    if name in HEALTH:  return "health tech"
+    if name in PET:     return "pet"
+    if name in HOME:    return "home & lifestyle"
+    if name in FOOD:    return "food & beverage"
+    if name in KIDS:    return "education"
+    if name in FIN:     return "fintech"
+    if name in BEAUTY:  return "beauty"
+    return "consumer tech"
+
+
+def _forerunner_sub(name):
+    SUBS = {
+        "Glossier":           "direct-to-consumer beauty",
+        "Prose":              "personalized haircare",
+        "Dollar Shave Club":  "subscription grooming",
+        "Curology":           "personalized skincare",
+        "Oura":               "health wearable",
+        "Ritual":             "supplements",
+        "Headway":            "mental health access",
+        "Hims & Hers Health": "telehealth",
+        "Prenuvo":            "preventive health imaging",
+        "Teal Health":        "women's health",
+        "Superpower":         "primary care",
+        "Fay":                "nutrition coaching",
+        "The Farmer's Dog":   "fresh pet food",
+        "Dutch":              "virtual vet",
+        "Away":               "direct-to-consumer travel",
+        "Warby Parker":       "direct-to-consumer eyewear",
+        "Cotopaxi":           "outdoor gear",
+        "KiwiCo":             "kids STEM kits",
+        "Chime":              "neobank",
+        "Zola":               "wedding marketplace",
+        "Wonder":             "food delivery",
+        "Magna":              "functional beverages",
+        "The Feed":           "performance nutrition",
+        "Joy":                "parenting platform",
+        "Homebound":          "custom homebuilding",
+    }
+    return SUBS.get(name, "consumer brand")
+
+
+def curated_imaginary_ventures():
+    """
+    Imaginary Ventures — Natalie Massenet & Nick Brown.
+    Premium direct-to-consumer brands across fashion, beauty, home.
+    Curated: JS-rendered site.
+    """
+    return [
+        {"brand_name": "Mejuri",         "category": "jewelry & accessories", "sub_category": "fine jewelry DTC",       "stage": "series-a", "source_url": "https://mejuri.com"},
+        {"brand_name": "Cuyana",         "category": "fashion",               "sub_category": "essentials fashion DTC",  "stage": "series-a", "source_url": "https://cuyana.com"},
+        {"brand_name": "Italic",         "category": "fashion",               "sub_category": "members-only DTC marketplace","stage": "seed",  "source_url": "https://italic.com"},
+        {"brand_name": "Jolie",          "category": "beauty",                "sub_category": "skin-first shower filters", "stage": "seed",   "source_url": "https://jolieskinco.com"},
+        {"brand_name": "Caraway",        "category": "home & lifestyle",      "sub_category": "non-toxic cookware DTC",  "stage": "series-a", "source_url": "https://carawayhome.com"},
+        {"brand_name": "Summer Fridays", "category": "beauty",                "sub_category": "clean skincare",          "stage": "series-a", "source_url": "https://summerfridays.com"},
+        {"brand_name": "Nécessaire",     "category": "beauty",                "sub_category": "body care essentials",    "stage": "series-a", "source_url": "https://necessaire.com"},
+        {"brand_name": "Parachute Home", "category": "home & lifestyle",      "sub_category": "premium bedding DTC",     "stage": "series-a", "source_url": "https://parachutehome.com"},
+        {"brand_name": "Pattern Brands", "category": "home & lifestyle",      "sub_category": "multi-brand home goods",  "stage": "series-a", "source_url": "https://pattern.com"},
+        {"brand_name": "Ganni",          "category": "fashion",               "sub_category": "Scandi sustainable fashion","stage": "series-b","source_url": "https://ganni.com"},
+        {"brand_name": "Vuori",          "category": "fashion",               "sub_category": "premium activewear",      "stage": "series-b", "source_url": "https://vuoriclothing.com"},
+        {"brand_name": "Allbirds",       "category": "fashion",               "sub_category": "sustainable footwear DTC","stage": "public",   "source_url": "https://allbirds.com"},
+    ]
+
+
+def curated_coefficient_capital():
+    """
+    Coefficient Capital — Taylor Black & Matthew Weiss.
+    CPG consumer specialists: food, beverage, beauty.
+    Curated: JS-rendered site.
+    """
+    return [
+        {"brand_name": "Olipop",        "category": "food & beverage",  "sub_category": "better-for-you soda",        "stage": "series-a", "source_url": "https://drinkolipop.com"},
+        {"brand_name": "Fishwife",      "category": "food & beverage",  "sub_category": "premium tinned seafood",     "stage": "seed",     "source_url": "https://fishwife.co"},
+        {"brand_name": "Graza",         "category": "food & beverage",  "sub_category": "squeeze-bottle olive oil",   "stage": "seed",     "source_url": "https://graza.co"},
+        {"brand_name": "Brightland",    "category": "food & beverage",  "sub_category": "premium California olive oil","stage": "seed",    "source_url": "https://brightland.co"},
+        {"brand_name": "Fly by Jing",   "category": "food & beverage",  "sub_category": "Sichuan condiments DTC",     "stage": "seed",     "source_url": "https://flybyjing.com"},
+        {"brand_name": "Magic Spoon",   "category": "food & beverage",  "sub_category": "high-protein cereal",        "stage": "series-a", "source_url": "https://magicspoon.com"},
+        {"brand_name": "Ghia",          "category": "food & beverage",  "sub_category": "non-alcoholic apéritif",     "stage": "seed",     "source_url": "https://drinkghia.com"},
+        {"brand_name": "Chomps",        "category": "food & beverage",  "sub_category": "grass-fed meat sticks",      "stage": "series-a", "source_url": "https://chomps.com"},
+        {"brand_name": "Vacation",      "category": "beauty",           "sub_category": "retro sunscreen branding",   "stage": "seed",     "source_url": "https://yourvacation.life"},
+        {"brand_name": "Recess",        "category": "food & beverage",  "sub_category": "adaptogen sparkling water",  "stage": "series-a", "source_url": "https://takearecess.com"},
+        {"brand_name": "Acid League",   "category": "food & beverage",  "sub_category": "living vinegars + pantry",   "stage": "seed",     "source_url": "https://acidleague.com"},
+        {"brand_name": "Brez",          "category": "food & beverage",  "sub_category": "THC/CBD micro-dose beverage","stage": "seed",     "source_url": "https://enjoybrez.com"},
+    ]
+
+
+def curated_vmg_partners():
+    """
+    VMG Partners — authentic consumer brand growth equity.
+    Focus: Food & Beverage, Beauty, Wellness. Often growth/buyout stage.
+    Curated: JS-rendered site.
+    """
+    return [
+        {"brand_name": "Olaplex",          "category": "beauty",           "sub_category": "bond-building haircare",        "stage": "public",   "source_url": "https://olaplex.com"},
+        {"brand_name": "COSRX",            "category": "beauty",           "sub_category": "K-beauty skincare",             "stage": "acquired", "source_url": "https://cosrx.com"},
+        {"brand_name": "Farmhouse Culture","category": "food & beverage",  "sub_category": "probiotic kraut & gut shots",   "stage": "series-a", "source_url": "https://farmhouseculture.com"},
+        {"brand_name": "Chosen Foods",     "category": "food & beverage",  "sub_category": "avocado oil kitchen staples",   "stage": "series-a", "source_url": "https://chosenfoods.com"},
+        {"brand_name": "Pete & Gerry's",   "category": "food & beverage",  "sub_category": "organic free-range eggs",       "stage": "series-a", "source_url": "https://peteandgerrys.com"},
+        {"brand_name": "MegaFood",         "category": "health tech",      "sub_category": "whole-food vitamins",           "stage": "series-a", "source_url": "https://megafood.com"},
+        {"brand_name": "Caliwater",        "category": "food & beverage",  "sub_category": "cactus water functional bev",   "stage": "seed",     "source_url": "https://caliwater.com"},
+        {"brand_name": "Bev",              "category": "food & beverage",  "sub_category": "female-founded canned wine",    "stage": "seed",     "source_url": "https://drinkbev.com"},
+        {"brand_name": "Bondi Sands",      "category": "beauty",           "sub_category": "self-tan & suncare",            "stage": "series-a", "source_url": "https://bondisands.com"},
+        {"brand_name": "Drunk Elephant",   "category": "beauty",           "sub_category": "clean clinical skincare",       "stage": "acquired", "source_url": "https://drunkelephant.com"},
+        {"brand_name": "Native",           "category": "beauty",           "sub_category": "natural deodorant",             "stage": "acquired", "source_url": "https://nativecos.com"},
+        {"brand_name": "Olly",             "category": "health tech",      "sub_category": "gummy supplements",             "stage": "acquired", "source_url": "https://olly.com"},
+    ]
+
+
 ACCELERATOR_SOURCE_URLS = {
-    "Science Inc.":       "https://science-inc.com",
-    "Harry's Labs":       "https://harrys.com/en/us/labs",
-    "Maesa":              "https://maesa.com",
-    "Beach House Group":  "https://beachhousegroup.com",
-    "HumanCo":            "https://www.humanco.com",
-    "Prehype":            "https://prehype.com",
-    "Unilever Foundry":   "https://www.unilever.com/planet-and-society/unilever-foundry",
-    "SKS Accelerator":    "https://sksaccelerator.com",
-    "Techstars Consumer": "https://www.techstars.com/portfolio",
-    "Target Accelerator": "https://corporate.target.com",
+    "Science Inc.":          "https://science-inc.com",
+    "Harry's Labs":          "https://harrys.com/en/us/labs",
+    "Maesa":                 "https://maesa.com",
+    "Beach House Group":     "https://beachhousegroup.com",
+    "HumanCo":               "https://www.humanco.com",
+    "Prehype":               "https://prehype.com",
+    "Unilever Foundry":      "https://www.unilever.com/planet-and-society/unilever-foundry",
+    "SKS Accelerator":       "https://sksaccelerator.com",
+    "Techstars Consumer":    "https://www.techstars.com/portfolio",
+    "Target Accelerator":    "https://corporate.target.com",
+    "Forerunner":            "https://www.forerunnerventures.com/investments",
+    "Imaginary Ventures":    "https://imaginaryfuture.com",
+    "Coefficient Capital":   "https://www.coefficientcapital.com/portfolio",
+    "VMG Partners":          "https://www.vmgpartners.com/companies",
 }
 
 
@@ -262,16 +429,20 @@ def scrape_all_portfolios():
     all_brands = []
 
     scrapers = [
-        ("Maesa",              scrape_maesa),
-        ("HumanCo",            scrape_humanco),
-        ("Science Inc.",       lambda: curated_science_inc()),
-        ("Harry's Labs",       lambda: curated_harrys_labs()),
-        ("Beach House Group",  lambda: curated_beach_house_group()),
-        ("Prehype",            lambda: curated_prehype()),
-        ("Unilever Foundry",   lambda: curated_unilever_foundry()),
-        ("SKS Accelerator",    lambda: curated_sks_accelerator()),
-        ("Techstars Consumer", lambda: curated_techstars_consumer()),
-        ("Target Accelerator", lambda: curated_target_accelerator()),
+        ("Maesa",                scrape_maesa),
+        ("HumanCo",              scrape_humanco),
+        ("Forerunner",           scrape_forerunner),
+        ("Science Inc.",         lambda: curated_science_inc()),
+        ("Harry's Labs",         lambda: curated_harrys_labs()),
+        ("Beach House Group",    lambda: curated_beach_house_group()),
+        ("Prehype",              lambda: curated_prehype()),
+        ("Unilever Foundry",     lambda: curated_unilever_foundry()),
+        ("SKS Accelerator",      lambda: curated_sks_accelerator()),
+        ("Techstars Consumer",   lambda: curated_techstars_consumer()),
+        ("Target Accelerator",   lambda: curated_target_accelerator()),
+        ("Imaginary Ventures",   lambda: curated_imaginary_ventures()),
+        ("Coefficient Capital",  lambda: curated_coefficient_capital()),
+        ("VMG Partners",         lambda: curated_vmg_partners()),
     ]
 
     for name, fn in scrapers:
