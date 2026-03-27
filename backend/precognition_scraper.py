@@ -361,8 +361,22 @@ def seed_tech_consumer():
     return companies
 
 
+def purge_removed_accelerators():
+    """One-time cleanup: remove brands from accelerators no longer in ACCELERATOR_TIERS."""
+    removed = ["Chobani Incubator", "Naturally Boulder"]
+    for acc in removed:
+        try:
+            result = supabase.table("consumer_founders").delete().eq("accelerator", acc).execute()
+            log.info(f"Purged brands from '{acc}': {result}")
+        except Exception as e:
+            log.warning(f"Purge failed for '{acc}': {e}")
+
+
 def run():
     log.info("=== Prism Precognition Scraper starting ===")
+
+    # Cleanup removed accelerators
+    purge_removed_accelerators()
 
     # Load context for scoring
     trending_cats = get_trending_categories()
