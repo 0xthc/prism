@@ -1,7 +1,8 @@
 """
 Prism Precognition Scraper
 Surfaces consumer brands before or as they raise.
-Sources: Chobani Incubator, SKS Accelerator, Techstars Consumer,
+Sources: Science Inc., Harry's Labs, HumanCo, Maesa, Beach House Group,
+         Prehype, Unilever Foundry, SKS Accelerator, Techstars Consumer,
          cross-referenced with brand_signals + trend_shifts in Supabase.
 """
 
@@ -31,7 +32,6 @@ HEADERS = {
 
 ACCELERATOR_TIERS = {
     # Food & beverage specialists
-    "Chobani Incubator":   {"score": 20, "focus": "food & beverage"},
     "SKS Accelerator":     {"score": 20, "focus": "food & beverage"},
     # DTC-native builders — brand creation from scratch
     "Science Inc.":        {"score": 19, "focus": "consumer"},
@@ -63,15 +63,6 @@ def seed_accelerator_brands():
     Updated: March 2026.
     """
     brands = [
-        # ── Chobani Incubator (food & beverage focus) ──────────────────
-        {"brand_name": "Slate Milk", "category": "food & beverage", "sub_category": "functional dairy", "accelerator": "Chobani Incubator", "stage": "seed"},
-        {"brand_name": "Tosi", "category": "food & beverage", "sub_category": "snack bars", "accelerator": "Chobani Incubator", "stage": "seed"},
-        {"brand_name": "Tia Lupita", "category": "food & beverage", "sub_category": "sauces", "accelerator": "Chobani Incubator", "stage": "seed"},
-        {"brand_name": "Moku Foods", "category": "food & beverage", "sub_category": "plant-based", "accelerator": "Chobani Incubator", "stage": "seed"},
-        {"brand_name": "Créme de la Créme", "category": "food & beverage", "sub_category": "ice cream", "accelerator": "Chobani Incubator", "stage": "pre-raise"},
-        {"brand_name": "Mid-Day Squares", "category": "food & beverage", "sub_category": "functional chocolate", "accelerator": "Chobani Incubator", "stage": "seed"},
-        # Removed: Goodles (well-known), Fly by Jing (Series A established), Partake Foods (Series A established), Yumi (Series A established)
-
         # ── SKS Accelerator (sustainable consumer) ─────────────────────
         {"brand_name": "Loliware", "category": "sustainability", "sub_category": "packaging", "accelerator": "SKS Accelerator", "stage": "seed"},
         {"brand_name": "Foodshed", "category": "food & beverage", "sub_category": "local supply chain", "accelerator": "SKS Accelerator", "stage": "pre-raise"},
@@ -126,7 +117,6 @@ def seed_accelerator_brands():
     ]
 
     url_map = {
-        "Chobani Incubator":  "https://www.chobani.com/impact/incubator",
         "SKS Accelerator":    "https://sksaccelerator.com",
         "Techstars Consumer": "https://www.techstars.com/portfolio",
         "Target Accelerator": "https://corporate.target.com/sustainability-governance/society/target-forward/accelerators",
