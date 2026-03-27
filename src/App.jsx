@@ -271,6 +271,42 @@ const SRC_STYLES = {
   'Newsletter':  { bg: '#fff3e0', color: '#bf5000' },
 }
 
+// ── Fund intel metadata ────────────────────────────────────────
+const VC_FUNDS = new Set(['Forerunner', 'First Round', 'a16z', 'General Catalyst', 'YC'])
+
+const FUND_META = {
+  'Forerunner': {
+    thesis: 'Brands that define how modern people live — commerce, identity, and the infrastructure of everyday life.',
+    focus: ['beauty', 'home & lifestyle', 'marketplace', 'fintech', 'consumer AI'],
+    gp: 'Kirsten Green',
+    stage: 'Seed → Series B',
+  },
+  'First Round': {
+    thesis: 'Seed-stage, founder-led companies across consumer health, fintech, and marketplace — bet on the team before the market.',
+    focus: ['health tech', 'fintech', 'social', 'beauty', 'marketplace'],
+    gp: 'Josh Kopelman',
+    stage: 'Pre-seed → Seed',
+  },
+  'a16z': {
+    thesis: 'Consumer internet + culture — social, creator economy, and consumer AI at the intersection of culture and tech.',
+    focus: ['consumer AI', 'social', 'health tech', 'education', 'consumer tech'],
+    gp: 'Andrew Chen / Connie Chan',
+    stage: 'Seed → Series C',
+  },
+  'General Catalyst': {
+    thesis: 'Resilience investing — health system transformation, climate, and durable consumer platforms with defensible moats.',
+    focus: ['health tech', 'mental health', 'education', 'consumer tech', 'longevity'],
+    gp: 'Hemant Taneja',
+    stage: 'Series A → Growth',
+  },
+  'YC': {
+    thesis: 'All categories. Strong network effects and distribution advantages. Consumer businesses with recurring revenue or viral loops.',
+    focus: ['marketplace', 'social', 'consumer tech', 'food & beverage', 'fintech'],
+    gp: 'Garry Tan',
+    stage: 'Pre-seed',
+  },
+}
+
 // ── Saturation helpers ─────────────────────────────────────────
 const MATURE_STAGES = new Set(['series-a', 'series-b', 'acquired', 'public'])
 
@@ -287,6 +323,7 @@ function saturationSignal(brands) {
 function PatternsTab() {
   const [brands, setBrands]     = useState([])
   const [loading, setLoading]   = useState(true)
+  const [view, setView]         = useState('funds')   // 'funds' | 'clusters'
   const [selected, setSelected] = useState(null)
   const [sortBy, setSortBy]     = useState('count')
 
@@ -298,7 +335,31 @@ function PatternsTab() {
       .then(({ data }) => { if (data) setBrands(data); setLoading(false) })
   }, [])
 
-  const clusters = useMemo(() => {
+  // ── Fund intel clusters ──────────────────────────────────────
+  const fundClusters = useMemo(() => {
+    const map = {}
+    for (const b of brands) {
+      const acc = b.accelerator || ''
+      if (!VC_FUNDS.has(acc)) continue
+      if (!map[acc]) map[acc] = []
+      map[acc].push(b)
+    }
+    return Object.entries(map).map(([fund, items]) => {
+      const catMap = {}
+      for (const b of items) {
+        const cat = b.category || 'Other'
+        if (!catMap[cat]) catMap[cat] = []
+        catMap[cat].push(b)
+      }
+      const cats = Object.entries(catMap).sort((a, b) => b[1].length - a[1].length)
+      const avgScore = Math.round(items.reduce((s, b) => s + (b.score || 0), 0) / items.length)
+      const meta = FUND_META[fund] || {}
+      return { fund, items, cats, avgScore, meta }
+    }).sort((a, b) => b.items.length - a.items.length)
+  }, [brands])
+
+  // ── Category clusters ────────────────────────────────────────
+  const catClusters = useMemo(() => {
     const map = {}
     for (const b of brands) {
       const cat = b.category || 'Other'
@@ -315,7 +376,9 @@ function PatternsTab() {
       const subClusters = Object.entries(subMap).sort((a, b) => b[1].length - a[1].length)
       const avgScore    = Math.round(items.reduce((s, b) => s + (b.score || 0), 0) / items.length)
       const sat         = saturationSignal(items)
-      return { category, items, subClusters, avgScore, sat }
+      // Which funds are in this category?
+      const fundsIn = [...new Set(items.filter(b => VC_FUNDS.has(b.accelerator)).map(b => b.accelerator))]
+      return { category, items, subClusters, avgScore, sat, fundsIn }
     }).sort((a, b) => {
       if (sortBy === 'score')      return b.avgScore - a.avgScore
       if (sortBy === 'saturation') return b.sat.score - a.sat.score
@@ -323,98 +386,228 @@ function PatternsTab() {
     })
   }, [brands, sortBy])
 
-  const active = selected ? clusters.find(c => c.category === selected) : null
+  const activeFund = view === 'funds' && selected ? fundClusters.find(c => c.fund === selected) : null
+  const activeCat  = view === 'clusters' && selected ? catClusters.find(c => c.category === selected) : null
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 48px)', color: '#bbb', fontSize: 13 }}>
-      Loading clusters…
+      Loading patterns…
     </div>
   )
 
   return (
     <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', height: 'calc(100vh - 48px)' }}>
+
+      {/* ── Left panel ──────────────────────────────────────── */}
       <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8e5', overflowY: 'auto', padding: '20px 14px' }}>
         <div style={{ marginBottom: 14 }}>
           <h1 style={{ margin: '0 0 3px', fontSize: 16, fontWeight: 700 }}>Patterns</h1>
-          <div style={{ fontSize: 11, color: '#888' }}>{clusters.length} clusters · {brands.length} brands</div>
+          <div style={{ fontSize: 11, color: '#888' }}>
+            {view === 'funds' ? `${fundClusters.length} consumer funds · ${fundClusters.reduce((s,f) => s + f.items.length, 0)} portfolio cos` : `${catClusters.length} clusters · ${brands.length} brands`}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-          {['count', 'score', 'saturation'].map(s => (
-            <button key={s} onClick={() => setSortBy(s)} style={{
-              padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
-              background: sortBy === s ? '#1a1a1a' : '#fff',
-              color:      sortBy === s ? '#fff'    : '#666',
-              border:     sortBy === s ? 'none'    : '1px solid #e0e0dc',
-            }}>
-              {s === 'count' ? 'Size' : s === 'score' ? 'Score' : 'Saturation'}
-            </button>
+
+        {/* View toggle */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#f4f4f1', borderRadius: 8, padding: 3 }}>
+          {[['funds', 'Fund Intel'], ['clusters', 'Clusters']].map(([v, label]) => (
+            <button key={v} onClick={() => { setView(v); setSelected(null) }} style={{
+              flex: 1, padding: '5px 0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: view === v ? '#fff' : 'transparent',
+              color:      view === v ? '#1a1a1a' : '#888',
+              boxShadow:  view === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}>{label}</button>
           ))}
         </div>
-        {clusters.map(c => {
-          const isSel = selected === c.category
+
+        {/* Fund Intel list */}
+        {view === 'funds' && fundClusters.map(c => {
+          const isSel = selected === c.fund
+          const topCat = c.cats[0]?.[0] || '—'
           return (
-            <div key={c.category} onClick={() => setSelected(isSel ? null : c.category)} style={{
+            <div key={c.fund} onClick={() => setSelected(isSel ? null : c.fund)} style={{
               background: isSel ? '#fafaf8' : '#fff',
               border:     isSel ? '1.5px solid #1a1a1a' : '1px solid #e8e8e5',
-              borderRadius: 10, padding: '11px 12px', cursor: 'pointer', marginBottom: 7,
+              borderRadius: 10, padding: '12px 13px', cursor: 'pointer', marginBottom: 7,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                <div style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a', flex: 1, lineHeight: 1.3 }}>{c.category}</div>
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, marginLeft: 6, flexShrink: 0, background: c.sat.bg, color: c.sat.color }}>
-                  {c.sat.label}
-                </span>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{c.fund}</div>
+              {c.meta.gp && <div style={{ fontSize: 10, color: '#aaa', marginBottom: 5 }}>{c.meta.gp} · {c.meta.stage}</div>}
+              <div style={{ fontSize: 11, color: '#666', marginBottom: 6, lineHeight: 1.4 }}>
+                {(c.meta.thesis || '').substring(0, 80)}…
               </div>
-              <div style={{ fontSize: 10, color: '#999', marginBottom: 6 }}>
-                {c.items.length} brands · avg {c.avgScore} · {c.subClusters.length} niches
-              </div>
-              <div style={{ height: 3, background: '#f0f0ee', borderRadius: 2 }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (c.sat.score / 16) * 100)}%`, background: c.sat.color, borderRadius: 2 }} />
+              <div style={{ display: 'flex', gap: 10, fontSize: 10, color: '#999' }}>
+                <span><strong style={{ color: '#1a1a1a' }}>{c.items.length}</strong> cos</span>
+                <span>·</span>
+                <span>avg <strong style={{ color: '#1a1a1a' }}>{c.avgScore}</strong></span>
+                <span>·</span>
+                <span>top bet: <strong style={{ color: '#1a1a1a' }}>{topCat}</strong></span>
               </div>
             </div>
           )
         })}
+
+        {/* Cluster list */}
+        {view === 'clusters' && <>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+            {['count', 'score', 'saturation'].map(s => (
+              <button key={s} onClick={() => setSortBy(s)} style={{
+                padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                background: sortBy === s ? '#1a1a1a' : '#fff',
+                color:      sortBy === s ? '#fff'    : '#666',
+                border:     sortBy === s ? 'none'    : '1px solid #e0e0dc',
+              }}>
+                {s === 'count' ? 'Size' : s === 'score' ? 'Score' : 'Saturation'}
+              </button>
+            ))}
+          </div>
+          {catClusters.map(c => {
+            const isSel = selected === c.category
+            return (
+              <div key={c.category} onClick={() => setSelected(isSel ? null : c.category)} style={{
+                background: isSel ? '#fafaf8' : '#fff',
+                border:     isSel ? '1.5px solid #1a1a1a' : '1px solid #e8e8e5',
+                borderRadius: 10, padding: '11px 12px', cursor: 'pointer', marginBottom: 7,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: '#1a1a1a', flex: 1 }}>{c.category}</div>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, marginLeft: 6, background: c.sat.bg, color: c.sat.color }}>
+                    {c.sat.label}
+                  </span>
+                </div>
+                <div style={{ fontSize: 10, color: '#999', marginBottom: 5 }}>
+                  {c.items.length} brands · avg {c.avgScore}
+                  {c.fundsIn.length > 0 && <span style={{ color: '#888' }}> · {c.fundsIn.join(', ')}</span>}
+                </div>
+                <div style={{ height: 3, background: '#f0f0ee', borderRadius: 2 }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, (c.sat.score / 16) * 100)}%`, background: c.sat.color, borderRadius: 2 }} />
+                </div>
+              </div>
+            )
+          })}
+        </>}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 28px' }}>
-        {!active ? (
+      {/* ── Right panel ─────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
+        {!activeFund && !activeCat ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#bbb', fontSize: 13 }}>
-            Select a cluster to explore
+            {view === 'funds' ? 'Select a fund to see their portfolio clusters' : 'Select a cluster to explore'}
           </div>
-        ) : (
-          <div style={{ maxWidth: 700 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: active.sat.bg, color: active.sat.color }}>
-                {active.sat.label}
-              </span>
-              <span style={{ fontSize: 11, color: '#aaa' }}>{active.items.length} brands · avg score {active.avgScore}</span>
-            </div>
-            <h2 style={{ margin: '0 0 16px', fontSize: 20, fontWeight: 700 }}>{active.category}</h2>
 
-            <div style={{ background: '#fafaf8', border: '1px solid #e8e8e5', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 10 }}>
-                Saturation breakdown
+        ) : activeFund ? (
+          // ── Fund detail ──────────────────────────────────────
+          <div style={{ maxWidth: 720 }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700 }}>{activeFund.fund}</h2>
+            {activeFund.meta.gp && (
+              <div style={{ fontSize: 11, color: '#aaa', marginBottom: 12 }}>{activeFund.meta.gp} · {activeFund.meta.stage}</div>
+            )}
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#444', lineHeight: 1.7, maxWidth: 560 }}>
+              {activeFund.meta.thesis}
+            </p>
+
+            {/* Focus areas */}
+            {activeFund.meta.focus && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 8 }}>Focus areas</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {activeFund.meta.focus.map(f => (
+                    <span key={f} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#f4f4f1', color: '#555', fontWeight: 500 }}>{f}</span>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 24, marginBottom: 10 }}>
-                {['pre-raise', 'seed', 'series-a', 'acquired'].map(stage => {
-                  const n  = active.items.filter(b => b.stage === stage).length
-                  const sl = STAGE_LABEL[stage] || { bg: '#f4f4f1', color: '#555', label: stage }
+            )}
+
+            {/* Portfolio category breakdown */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 12 }}>Portfolio structure</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {activeFund.cats.map(([cat, items]) => {
+                  const pct = Math.round((items.length / activeFund.items.length) * 100)
                   return (
-                    <div key={stage} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: sl.color }}>{n}</div>
-                      <div style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>{sl.label || stage}</div>
+                    <div key={cat}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                        <span style={{ color: '#333', fontWeight: 500 }}>{cat}</span>
+                        <span style={{ color: '#aaa' }}>{items.length} · {pct}%</span>
+                      </div>
+                      <div style={{ height: 4, background: '#f0f0ee', borderRadius: 2 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: '#1a1a1a', borderRadius: 2 }} />
+                      </div>
                     </div>
                   )
                 })}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#ccc', marginBottom: 3 }}>
-                <span>Emerging</span><span>Saturated</span>
+            </div>
+
+            {/* Portfolio companies */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 12 }}>Portfolio companies</div>
+              {activeFund.cats.map(([cat, items]) => (
+                <div key={cat} style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 7 }}>
+                    {cat} <span style={{ fontWeight: 400, color: '#bbb', textTransform: 'none', letterSpacing: 0 }}>({items.length})</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {items.sort((a, b) => (b.score || 0) - (a.score || 0)).map(b => {
+                      const sl = STAGE_LABEL[b.stage] || { bg: '#f4f4f1', color: '#888', label: b.stage }
+                      return (
+                        <div key={b.id} style={{ background: '#fff', border: '1px solid #e8e8e5', borderRadius: 8, padding: '9px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3 }}>
+                              {b.source_url ? (
+                                <a href={b.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#1a1a1a', textDecoration: 'none' }}>
+                                  {b.brand_name} <span style={{ color: '#aaa', fontWeight: 400 }}>↗</span>
+                                </a>
+                              ) : b.brand_name}
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 20, background: sl.bg, color: sl.color, fontWeight: 600 }}>{sl.label || b.stage}</span>
+                              {b.sub_category && <span style={{ fontSize: 10, color: '#bbb' }}>{b.sub_category}</span>}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(b.score || 0) }}>{b.score || '—'}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        ) : activeCat ? (
+          // ── Category cluster detail ──────────────────────────
+          <div style={{ maxWidth: 700 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: activeCat.sat.bg, color: activeCat.sat.color }}>
+                {activeCat.sat.label}
+              </span>
+              <span style={{ fontSize: 11, color: '#aaa' }}>{activeCat.items.length} brands · avg {activeCat.avgScore}</span>
+              {activeCat.fundsIn.length > 0 && (
+                <span style={{ fontSize: 10, color: '#888' }}>· backed by {activeCat.fundsIn.join(', ')}</span>
+              )}
+            </div>
+            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 700 }}>{activeCat.category}</h2>
+
+            {/* Stage breakdown */}
+            <div style={{ background: '#fafaf8', border: '1px solid #e8e8e5', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', marginBottom: 10 }}>Stage breakdown</div>
+              <div style={{ display: 'flex', gap: 24, marginBottom: 10 }}>
+                {['pre-raise', 'seed', 'series-a', 'acquired'].map(stage => {
+                  const n  = activeCat.items.filter(b => b.stage === stage).length
+                  const sl = STAGE_LABEL[stage] || { bg: '#f4f4f1', color: '#555', label: stage }
+                  return (
+                    <div key={stage} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: sl.color }}>{n}</div>
+                      <div style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>{sl.label}</div>
+                    </div>
+                  )
+                })}
               </div>
               <div style={{ height: 5, background: '#eee', borderRadius: 3 }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (active.sat.score / 16) * 100)}%`, background: active.sat.color, borderRadius: 3 }} />
+                <div style={{ height: '100%', width: `${Math.min(100, (activeCat.sat.score / 16) * 100)}%`, background: activeCat.sat.color, borderRadius: 3 }} />
               </div>
             </div>
 
-            {active.subClusters.map(([sub, items]) => {
+            {activeCat.subClusters.map(([sub, items]) => {
               const subSat = saturationSignal(items)
               return (
                 <div key={sub} style={{ marginBottom: 20 }}>
@@ -441,9 +634,7 @@ function PatternsTab() {
                               <span style={{ fontSize: 10, color: '#bbb' }}>{b.accelerator}</span>
                             </div>
                           </div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(b.score || 0), minWidth: 28, textAlign: 'right' }}>
-                            {b.score || '—'}
-                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(b.score || 0) }}>{b.score || '—'}</div>
                         </div>
                       )
                     })}
@@ -452,7 +643,7 @@ function PatternsTab() {
               )
             })}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )
