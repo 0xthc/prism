@@ -35,12 +35,21 @@ ACCELERATOR_TIERS = {
     # ── Consumer VC funds ──────────────────────────────────────────────
     "Forerunner":          {"score": 22, "focus": "consumer"},
     "Imaginary Ventures":  {"score": 21, "focus": "fashion & beauty"},
+    "True Beauty Ventures":{"score": 21, "focus": "beauty & wellness"},
     "First Round":         {"score": 20, "focus": "consumer"},
     "Coefficient Capital": {"score": 20, "focus": "food & beverage"},
     "a16z":                {"score": 20, "focus": "consumer"},
+    "Maveron":             {"score": 20, "focus": "consumer"},
+    "Lerer Hippeau":       {"score": 19, "focus": "consumer brands & media"},
+    "Silas Capital":       {"score": 19, "focus": "beauty & wellness"},
     "General Catalyst":    {"score": 19, "focus": "health tech"},
+    "Brand Foundry":       {"score": 19, "focus": "consumer brands"},
+    "Goodwater Capital":   {"score": 19, "focus": "consumer tech"},
     "VMG Partners":        {"score": 18, "focus": "authentic consumer brands"},
+    "Thrive Capital":      {"score": 18, "focus": "consumer tech & fintech"},
     "YC":                  {"score": 18, "focus": "consumer"},
+    "Greylock":            {"score": 17, "focus": "consumer tech"},
+    "CircleUp":            {"score": 17, "focus": "CPG consumer"},
     # ── Food & beverage specialists ────────────────────────────────────
     "SKS Accelerator":     {"score": 20, "focus": "food & beverage"},
     # ── DTC-native builders ────────────────────────────────────────────

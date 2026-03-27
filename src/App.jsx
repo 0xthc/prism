@@ -272,7 +272,12 @@ const SRC_STYLES = {
 }
 
 // ── Fund intel metadata ────────────────────────────────────────
-const VC_FUNDS = new Set(['Forerunner', 'Imaginary Ventures', 'Coefficient Capital', 'VMG Partners', 'First Round', 'a16z', 'General Catalyst', 'YC'])
+const VC_FUNDS = new Set([
+  'Forerunner', 'Imaginary Ventures', 'Coefficient Capital', 'VMG Partners',
+  'Maveron', 'Goodwater Capital', 'Greylock', 'Thrive Capital',
+  'Lerer Hippeau', 'Brand Foundry', 'CircleUp', 'Silas Capital', 'True Beauty Ventures',
+  'First Round', 'a16z', 'General Catalyst', 'YC',
+])
 
 const FUND_META = {
   'Forerunner': {
@@ -322,6 +327,60 @@ const FUND_META = {
     focus: ['marketplace', 'social', 'consumer tech', 'food & beverage', 'fintech'],
     gp: 'Garry Tan',
     stage: 'Pre-seed',
+  },
+  'Maveron': {
+    thesis: 'Exclusively consumer since 1998. Early-stage conviction across food, wellness, marketplace — bets on brands that become part of everyday life.',
+    focus: ['food & beverage', 'health tech', 'fashion', 'beauty', 'marketplace'],
+    gp: 'Dan Levitan (co-founded with Howard Schultz)',
+    stage: 'Seed → Series B',
+  },
+  'Goodwater Capital': {
+    thesis: 'Consumer tech specialist with a proprietary data-driven sourcing model. Targets consumer internet at global scale — marketplaces, fintech, health.',
+    focus: ['marketplace', 'fintech', 'health tech', 'consumer tech', 'education'],
+    gp: 'Eric Kim & Chi-Hua Chien',
+    stage: 'Seed → Series B',
+  },
+  'Greylock': {
+    thesis: 'Consumer tech DNA built on social, community, and creator platforms. Backs companies that become default infrastructure for how people connect and create.',
+    focus: ['consumer tech', 'social', 'marketplace', 'fintech', 'education'],
+    gp: 'Reid Hoffman / David Sze',
+    stage: 'Series A → Series C',
+  },
+  'Thrive Capital': {
+    thesis: 'Consumer tech and fintech with cultural cachet. Josh Kushner bets on companies that reshape daily life at the intersection of culture, health, and finance.',
+    focus: ['consumer tech', 'fintech', 'health tech', 'education', 'social'],
+    gp: 'Josh Kushner',
+    stage: 'Seed → Series C',
+  },
+  'Lerer Hippeau': {
+    thesis: 'NYC-based consumer brands and media. Early conviction in DTC brands with strong community and earned media — category-defining before the category exists.',
+    focus: ['beauty', 'fashion', 'home & lifestyle', 'fintech', 'marketplace'],
+    gp: 'Ben Lerer & Eric Hippeau',
+    stage: 'Pre-seed → Series A',
+  },
+  'Brand Foundry': {
+    thesis: 'Exclusively consumer brands, often co-investing with strategic retail partners. Deep CPG expertise in food/bev and health — backs brands with retail path clarity.',
+    focus: ['food & beverage', 'beauty', 'health & wellness'],
+    gp: 'Steve Gullans & Walter Bobb',
+    stage: 'Seed → Series B',
+  },
+  'CircleUp': {
+    thesis: 'Consumer/CPG focus powered by the Helio machine learning platform for brand evaluation. Data-driven identification of emerging brands before traditional signals.',
+    focus: ['food & beverage', 'beauty', 'health & wellness'],
+    gp: 'Ryan Caldbeck',
+    stage: 'Seed → Series A',
+  },
+  'Silas Capital': {
+    thesis: 'Early-stage consumer brands in beauty, wellness, and food. Backs female-founded and culturally resonant brands before institutional money arrives.',
+    focus: ['beauty', 'health & wellness', 'food & beverage'],
+    gp: 'Monica Arés & Stephen Master',
+    stage: 'Pre-seed → Seed',
+  },
+  'True Beauty Ventures': {
+    thesis: 'Exclusively beauty and wellness. Cristina Nuñez and Rich Gersten back founders disrupting the beauty industry with clinical efficacy, inclusivity, and authenticity.',
+    focus: ['beauty', 'health & wellness'],
+    gp: 'Cristina Nuñez & Rich Gersten',
+    stage: 'Seed → Series A',
   },
 }
 

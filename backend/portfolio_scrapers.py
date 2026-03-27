@@ -5,6 +5,7 @@ Approach per source:
   - Maesa              → HTML parse (static nav, reliable)
   - HumanCo            → HTML parse (static page, reliable)
   - Forerunner         → HTML parse (server-side rendered h2 + category tags)
+  - Maveron            → HTML parse (external hrefs on portfolio page)
   - Science Inc.       → curated (JS-rendered, not scrapable)
   - Harry's Labs       → curated (JS-rendered, not scrapable)
   - Beach House        → curated (site intermittently down)
@@ -16,6 +17,14 @@ Approach per source:
   - Imaginary Ventures → curated (JS-rendered, Natalie Massenet's consumer fund)
   - Coefficient Capital→ curated (JS-rendered, CPG consumer specialists)
   - VMG Partners       → curated (JS-rendered, authentic consumer brand growth equity)
+  - Goodwater Capital  → curated (consumer tech, data-driven sourcing)
+  - Greylock           → curated (consumer tech DNA: Airbnb, Discord, Nextdoor)
+  - Thrive Capital     → curated (consumer tech + fintech, Josh Kushner)
+  - Lerer Hippeau      → curated (NYC consumer brands + media)
+  - Brand Foundry      → curated (exclusively consumer brands)
+  - CircleUp           → curated (CPG with Helio data platform)
+  - Silas Capital      → curated (beauty, wellness, food consumer brands)
+  - True Beauty        → curated (beauty + wellness specialist)
 
 All functions return a list of brand dicts compatible with consumer_founders schema.
 Updated: March 2026.
@@ -403,6 +412,201 @@ def curated_vmg_partners():
     ]
 
 
+def scrape_maveron():
+    """
+    Maveron — exclusively consumer VC since 1998 (Howard Schultz + Dan Levitan).
+    Portfolio page exposes company URLs as external hrefs.
+    Filtered to active consumer brands; exits/B2B excluded.
+    """
+    CONSUMER_MAP = {
+        "allbirds.com":        ("Allbirds",          "fashion",              "sustainable footwear DTC",      "public"),
+        "lovevery.com":        ("Lovevery",           "education",            "stage-based kids learning kits","series-b"),
+        "everlane.com":        ("Everlane",           "fashion",              "radical transparency fashion",  "series-b"),
+        "madison-reed.com":    ("Madison Reed",       "beauty",               "salon-quality hair color DTC",  "series-b"),
+        "imperfectfoods.com":  ("Imperfect Foods",    "food & beverage",      "rescued produce delivery",      "series-b"),
+        "necessaire.com":      ("Nécessaire",         "beauty",               "body care essentials",          "series-a"),
+        "thirtymadison.com":   ("Thirty Madison",     "health tech",          "DTC health brand house",        "series-b"),
+        "twochairs.com":       ("Two Chairs",         "health tech",          "therapy matching platform",     "series-b"),
+        "daring.com":          ("Daring Foods",       "food & beverage",      "plant-based chicken",           "series-a"),
+        "snif.co":             ("Snif",               "beauty",               "try-before-you-buy fragrance",  "seed"),
+        "goodbelly.com":       ("GoodBelly",          "food & beverage",      "probiotic beverages",           "series-a"),
+        "august.com":          ("August",             "health tech",          "Gen Z period care brand",       "seed"),
+        "bendhealth.com":      ("Bend Health",        "health tech",          "pediatric mental health",       "seed"),
+        "veracityselfcare.com":("Veracity Selfcare",  "health tech",          "hormone-informed skincare",     "seed"),
+        "dollskill.com":       ("Dolls Kill",         "fashion",              "alternative subculture fashion","series-a"),
+    }
+    html = _get("https://www.maveron.com/portfolio", timeout=10)
+    if not html:
+        return _maveron_fallback()
+    found = []
+    for url_frag, meta in CONSUMER_MAP.items():
+        if url_frag in html:
+            name, cat, sub, stage = meta
+            found.append({
+                "brand_name":   name,
+                "category":     cat,
+                "sub_category": sub,
+                "stage":        stage,
+                "source_url":   f"https://{url_frag}",
+            })
+    log.info(f"Maveron live scrape: {len(found)} brands")
+    return found if found else _maveron_fallback()
+
+
+def _maveron_fallback():
+    return [
+        {"brand_name": "Allbirds",    "category": "fashion",        "sub_category": "sustainable footwear DTC",     "stage": "public",   "source_url": "https://allbirds.com"},
+        {"brand_name": "Lovevery",    "category": "education",      "sub_category": "stage-based kids learning",    "stage": "series-b", "source_url": "https://lovevery.com"},
+        {"brand_name": "Everlane",    "category": "fashion",        "sub_category": "radical transparency fashion", "stage": "series-b", "source_url": "https://everlane.com"},
+        {"brand_name": "Madison Reed","category": "beauty",         "sub_category": "salon-quality hair color DTC", "stage": "series-b", "source_url": "https://madison-reed.com"},
+        {"brand_name": "Daring Foods","category": "food & beverage","sub_category": "plant-based chicken",          "stage": "series-a", "source_url": "https://daring.com"},
+    ]
+
+
+def curated_goodwater_capital():
+    """
+    Goodwater Capital — consumer tech specialist with proprietary data-driven sourcing.
+    Backed Faire, StockX, Flo, Whatnot, Cameo.
+    """
+    return [
+        {"brand_name": "Faire",          "category": "marketplace",    "sub_category": "wholesale marketplace for independents","stage": "series-b", "source_url": "https://faire.com"},
+        {"brand_name": "StockX",         "category": "marketplace",    "sub_category": "live sneaker & streetwear marketplace",  "stage": "series-b", "source_url": "https://stockx.com"},
+        {"brand_name": "Flo Health",     "category": "health tech",    "sub_category": "women's cycle & health tracking",        "stage": "series-b", "source_url": "https://flo.health"},
+        {"brand_name": "Whatnot",        "category": "marketplace",    "sub_category": "live-commerce collectibles marketplace", "stage": "series-b", "source_url": "https://whatnot.com"},
+        {"brand_name": "Cameo",          "category": "consumer tech",  "sub_category": "celebrity shoutout marketplace",         "stage": "series-b", "source_url": "https://cameo.com"},
+        {"brand_name": "Current",        "category": "fintech",        "sub_category": "teen + Gen Z neobank",                   "stage": "series-b", "source_url": "https://current.com"},
+        {"brand_name": "Tally",          "category": "fintech",        "sub_category": "AI credit card debt optimizer",          "stage": "series-b", "source_url": "https://meettally.com"},
+        {"brand_name": "Stash",          "category": "fintech",        "sub_category": "fractional stock + banking app",         "stage": "series-b", "source_url": "https://stash.com"},
+        {"brand_name": "Brainly",        "category": "education",      "sub_category": "peer homework help platform",            "stage": "series-b", "source_url": "https://brainly.com"},
+        {"brand_name": "Oda",            "category": "food & beverage","sub_category": "European online grocery",                "stage": "series-b", "source_url": "https://oda.com"},
+    ]
+
+
+def curated_greylock():
+    """
+    Greylock Partners — strong consumer tech DNA across social, marketplace, creator.
+    Backed Airbnb, Discord, Nextdoor, Roblox, Coinbase.
+    """
+    return [
+        {"brand_name": "Airbnb",      "category": "marketplace",   "sub_category": "short-term rental marketplace",       "stage": "public",   "source_url": "https://airbnb.com"},
+        {"brand_name": "Discord",     "category": "consumer tech", "sub_category": "community + gaming communication",    "stage": "series-b", "source_url": "https://discord.com"},
+        {"brand_name": "Nextdoor",    "category": "consumer tech", "sub_category": "neighborhood social network",         "stage": "public",   "source_url": "https://nextdoor.com"},
+        {"brand_name": "Roblox",      "category": "consumer tech", "sub_category": "user-generated gaming metaverse",     "stage": "public",   "source_url": "https://roblox.com"},
+        {"brand_name": "Coinbase",    "category": "fintech",       "sub_category": "consumer crypto exchange",            "stage": "public",   "source_url": "https://coinbase.com"},
+        {"brand_name": "Quora",       "category": "consumer tech", "sub_category": "knowledge Q&A platform",              "stage": "series-b", "source_url": "https://quora.com"},
+        {"brand_name": "Medium",      "category": "consumer tech", "sub_category": "independent publishing platform",     "stage": "series-b", "source_url": "https://medium.com"},
+        {"brand_name": "Coda",        "category": "consumer tech", "sub_category": "AI-native doc + product workspace",   "stage": "series-b", "source_url": "https://coda.io"},
+        {"brand_name": "Abnormal",    "category": "consumer tech", "sub_category": "AI email security",                   "stage": "series-b", "source_url": "https://abnormalsecurity.com"},
+        {"brand_name": "Bumble",      "category": "consumer tech", "sub_category": "women-led dating + networking",       "stage": "public",   "source_url": "https://bumble.com"},
+    ]
+
+
+def curated_thrive_capital():
+    """
+    Thrive Capital — Josh Kushner. Consumer tech + fintech with cultural cachet.
+    Backed Instagram, Spotify, Oscar Health, Robinhood, Duolingo, Klarna.
+    """
+    return [
+        {"brand_name": "Spotify",       "category": "consumer tech", "sub_category": "music streaming platform",          "stage": "public",   "source_url": "https://spotify.com"},
+        {"brand_name": "Oscar Health",  "category": "health tech",   "sub_category": "tech-forward health insurance",     "stage": "public",   "source_url": "https://hioscar.com"},
+        {"brand_name": "Robinhood",     "category": "fintech",       "sub_category": "commission-free retail investing",   "stage": "public",   "source_url": "https://robinhood.com"},
+        {"brand_name": "Duolingo",      "category": "education",     "sub_category": "gamified language learning app",     "stage": "public",   "source_url": "https://duolingo.com"},
+        {"brand_name": "Klarna",        "category": "fintech",       "sub_category": "buy-now-pay-later shopping",         "stage": "series-b", "source_url": "https://klarna.com"},
+        {"brand_name": "Discord",       "category": "consumer tech", "sub_category": "community + gaming communication",   "stage": "series-b", "source_url": "https://discord.com"},
+        {"brand_name": "Airtable",      "category": "consumer tech", "sub_category": "no-code database platform",         "stage": "series-b", "source_url": "https://airtable.com"},
+        {"brand_name": "Nubank",        "category": "fintech",       "sub_category": "Latin American neobank",             "stage": "public",   "source_url": "https://nubank.com.br"},
+        {"brand_name": "Affirm",        "category": "fintech",       "sub_category": "transparent BNPL credit",           "stage": "public",   "source_url": "https://affirm.com"},
+        {"brand_name": "Warby Parker",  "category": "fashion",       "sub_category": "direct-to-consumer eyewear",        "stage": "public",   "source_url": "https://warbyparker.com"},
+    ]
+
+
+def curated_lerer_hippeau():
+    """
+    Lerer Hippeau — NYC consumer brands + media. Early in Casper, Allbirds, Glossier.
+    """
+    return [
+        {"brand_name": "Casper",         "category": "home & lifestyle",  "sub_category": "DTC mattress & sleep brand",       "stage": "acquired", "source_url": "https://casper.com"},
+        {"brand_name": "Allbirds",       "category": "fashion",           "sub_category": "sustainable footwear DTC",         "stage": "public",   "source_url": "https://allbirds.com"},
+        {"brand_name": "Glossier",       "category": "beauty",            "sub_category": "community-led beauty DTC",         "stage": "series-b", "source_url": "https://glossier.com"},
+        {"brand_name": "Warby Parker",   "category": "fashion",           "sub_category": "direct-to-consumer eyewear",       "stage": "public",   "source_url": "https://warbyparker.com"},
+        {"brand_name": "Bark",           "category": "pet",               "sub_category": "subscription dog toys & treats",   "stage": "public",   "source_url": "https://bark.co"},
+        {"brand_name": "Goldbelly",      "category": "food & beverage",   "sub_category": "iconic restaurant food delivery",  "stage": "series-b", "source_url": "https://goldbelly.com"},
+        {"brand_name": "Betterment",     "category": "fintech",           "sub_category": "automated investing platform",     "stage": "series-b", "source_url": "https://betterment.com"},
+        {"brand_name": "Parachute Home", "category": "home & lifestyle",  "sub_category": "premium bedding DTC",              "stage": "series-b", "source_url": "https://parachutehome.com"},
+        {"brand_name": "Stadium Goods",  "category": "marketplace",       "sub_category": "premium sneaker & apparel market", "stage": "acquired", "source_url": "https://stadiumgoods.com"},
+        {"brand_name": "Sniffies",       "category": "consumer tech",     "sub_category": "queer cruising & social platform", "stage": "series-a", "source_url": "https://sniffies.com"},
+    ]
+
+
+def curated_brand_foundry():
+    """
+    Brand Foundry Ventures — exclusively consumer brands, often co-investing with strategics.
+    Focus: food/bev, beauty, wellness.
+    """
+    return [
+        {"brand_name": "Olipop",          "category": "food & beverage",  "sub_category": "better-for-you soda",           "stage": "series-a", "source_url": "https://drinkolipop.com"},
+        {"brand_name": "Caulipower",       "category": "food & beverage",  "sub_category": "better-for-you frozen pizza",   "stage": "series-a", "source_url": "https://caulipower.com"},
+        {"brand_name": "Vive Organic",     "category": "food & beverage",  "sub_category": "cold-pressed wellness shots",   "stage": "seed",     "source_url": "https://viveorganic.com"},
+        {"brand_name": "Once Upon a Farm", "category": "food & beverage",  "sub_category": "organic kids cold-press pouches","stage": "series-a","source_url": "https://onceuponafarmorganics.com"},
+        {"brand_name": "Purely Elizabeth", "category": "food & beverage",  "sub_category": "grain-free granola & oats",     "stage": "acquired", "source_url": "https://purelyelizabeth.com"},
+        {"brand_name": "Krave Jerky",      "category": "food & beverage",  "sub_category": "premium artisan jerky",         "stage": "acquired", "source_url": "https://kravejerky.com"},
+        {"brand_name": "Suja Juice",       "category": "food & beverage",  "sub_category": "cold-pressed organic juice",    "stage": "acquired", "source_url": "https://sujajuice.com"},
+        {"brand_name": "Siete Foods",      "category": "food & beverage",  "sub_category": "Mexican-American grain-free",   "stage": "acquired", "source_url": "https://sietefoods.com"},
+        {"brand_name": "Lily's Sweets",    "category": "food & beverage",  "sub_category": "stevia-sweetened chocolate",    "stage": "acquired", "source_url": "https://lilyssweets.com"},
+    ]
+
+
+def curated_circleup():
+    """
+    CircleUp — consumer/CPG with proprietary Helio data platform for brand evaluation.
+    """
+    return [
+        {"brand_name": "Halo Top",          "category": "food & beverage",  "sub_category": "low-cal high-protein ice cream","stage": "acquired", "source_url": "https://halotop.com"},
+        {"brand_name": "Bulletproof",        "category": "food & beverage",  "sub_category": "performance coffee + MCT",     "stage": "acquired", "source_url": "https://bulletproof.com"},
+        {"brand_name": "Dave's Killer Bread","category": "food & beverage",  "sub_category": "organic whole grain bread",     "stage": "acquired", "source_url": "https://daveskillerbread.com"},
+        {"brand_name": "Thinx",              "category": "health tech",      "sub_category": "period underwear DTC",          "stage": "series-a", "source_url": "https://thinx.com"},
+        {"brand_name": "SunButter",          "category": "food & beverage",  "sub_category": "sunflower seed butter",         "stage": "series-a", "source_url": "https://sunbutter.com"},
+        {"brand_name": "Rebbl",              "category": "food & beverage",  "sub_category": "adaptogen protein drinks",      "stage": "series-a", "source_url": "https://rebbl.co"},
+        {"brand_name": "Birch Benders",      "category": "food & beverage",  "sub_category": "grain-free pancake + waffle mix","stage": "acquired","source_url": "https://birchbenders.com"},
+        {"brand_name": "Noosa Yoghurt",      "category": "food & beverage",  "sub_category": "Australian-style whole milk yogurt","stage": "acquired","source_url": "https://noosayoghurt.com"},
+    ]
+
+
+def curated_silas_capital():
+    """
+    Silas Capital — consumer brands in beauty, wellness, food. Often leads early rounds.
+    """
+    return [
+        {"brand_name": "Function of Beauty", "category": "beauty",      "sub_category": "personalized haircare system",    "stage": "series-b", "source_url": "https://functionofbeauty.com"},
+        {"brand_name": "Youthforia",          "category": "beauty",      "sub_category": "clean makeup with skin benefits", "stage": "seed",     "source_url": "https://youthforia.com"},
+        {"brand_name": "Kosas",               "category": "beauty",      "sub_category": "skin-loving clean makeup",        "stage": "series-a", "source_url": "https://kosas.com"},
+        {"brand_name": "Bobbie",              "category": "health tech", "sub_category": "clean European-recipe baby formula","stage": "series-b","source_url": "https://hibobbie.com"},
+        {"brand_name": "Dieux Skin",          "category": "beauty",      "sub_category": "science-backed slow beauty",      "stage": "seed",     "source_url": "https://dieuxskin.com"},
+        {"brand_name": "Joon Hair",           "category": "beauty",      "sub_category": "Mediterranean-inspired haircare", "stage": "seed",     "source_url": "https://joonhair.com"},
+        {"brand_name": "Oat Haus",            "category": "food & beverage","sub_category": "oat-based granola butter",     "stage": "seed",     "source_url": "https://oathaus.com"},
+        {"brand_name": "Nécessaire",          "category": "beauty",      "sub_category": "body care essentials",            "stage": "series-a", "source_url": "https://necessaire.com"},
+        {"brand_name": "Topicals",            "category": "beauty",      "sub_category": "clinical skincare for chronic conditions","stage": "seed","source_url": "https://mytopicals.com"},
+    ]
+
+
+def curated_true_beauty_ventures():
+    """
+    True Beauty Ventures — Cristina Nuñez & Rich Gersten. Exclusively beauty + wellness.
+    """
+    return [
+        {"brand_name": "Kinship",          "category": "beauty",     "sub_category": "Gen Z clean skincare",           "stage": "seed",     "source_url": "https://lovekinship.com"},
+        {"brand_name": "Kosas",            "category": "beauty",     "sub_category": "skin-loving clean makeup",       "stage": "series-a", "source_url": "https://kosas.com"},
+        {"brand_name": "Crown Affair",     "category": "beauty",     "sub_category": "slow haircare rituals",          "stage": "seed",     "source_url": "https://crownaffair.com"},
+        {"brand_name": "Supergoop",        "category": "beauty",     "sub_category": "everyday SPF skincare",          "stage": "acquired", "source_url": "https://supergoop.com"},
+        {"brand_name": "Codex Beauty",     "category": "beauty",     "sub_category": "clinically validated clean beauty","stage": "seed",   "source_url": "https://codexbeauty.com"},
+        {"brand_name": "ILIA Beauty",      "category": "beauty",     "sub_category": "skin-forward clean makeup",      "stage": "acquired", "source_url": "https://iliabeauty.com"},
+        {"brand_name": "Saltair",          "category": "beauty",     "sub_category": "affordable luxury body care",    "stage": "seed",     "source_url": "https://saltair.com"},
+        {"brand_name": "Youthforia",       "category": "beauty",     "sub_category": "clean makeup with skin benefits","stage": "seed",     "source_url": "https://youthforia.com"},
+        {"brand_name": "Veil Cosmetics",   "category": "beauty",     "sub_category": "inclusive shade range cosmetics","stage": "seed",     "source_url": "https://veilcosmetics.com"},
+        {"brand_name": "Plunge",           "category": "health tech","sub_category": "cold plunge tub for home recovery","stage": "series-a","source_url": "https://plunge.com"},
+    ]
+
+
 ACCELERATOR_SOURCE_URLS = {
     "Science Inc.":          "https://science-inc.com",
     "Harry's Labs":          "https://harrys.com/en/us/labs",
@@ -418,6 +622,15 @@ ACCELERATOR_SOURCE_URLS = {
     "Imaginary Ventures":    "https://imaginaryfuture.com",
     "Coefficient Capital":   "https://www.coefficientcapital.com/portfolio",
     "VMG Partners":          "https://www.vmgpartners.com/companies",
+    "Maveron":               "https://www.maveron.com/portfolio",
+    "Goodwater Capital":     "https://www.goodwatercap.com/portfolio",
+    "Greylock":              "https://greylock.com/portfolio",
+    "Thrive Capital":        "https://www.thrivecap.com",
+    "Lerer Hippeau":         "https://lererhippeau.com/portfolio",
+    "Brand Foundry":         "https://brandfoundryventures.com",
+    "CircleUp":              "https://circleup.com",
+    "Silas Capital":         "https://silascapital.com",
+    "True Beauty Ventures":  "https://truebeautyventures.com",
 }
 
 
@@ -429,9 +642,12 @@ def scrape_all_portfolios():
     all_brands = []
 
     scrapers = [
+        # ── HTML scrapers (live) ─────────────────────────────────
         ("Maesa",                scrape_maesa),
         ("HumanCo",              scrape_humanco),
         ("Forerunner",           scrape_forerunner),
+        ("Maveron",              scrape_maveron),
+        # ── Curated — incubators & studios ──────────────────────
         ("Science Inc.",         lambda: curated_science_inc()),
         ("Harry's Labs",         lambda: curated_harrys_labs()),
         ("Beach House Group",    lambda: curated_beach_house_group()),
@@ -440,9 +656,18 @@ def scrape_all_portfolios():
         ("SKS Accelerator",      lambda: curated_sks_accelerator()),
         ("Techstars Consumer",   lambda: curated_techstars_consumer()),
         ("Target Accelerator",   lambda: curated_target_accelerator()),
+        # ── Curated — VC funds (consumer focus) ─────────────────
         ("Imaginary Ventures",   lambda: curated_imaginary_ventures()),
         ("Coefficient Capital",  lambda: curated_coefficient_capital()),
         ("VMG Partners",         lambda: curated_vmg_partners()),
+        ("Goodwater Capital",    lambda: curated_goodwater_capital()),
+        ("Greylock",             lambda: curated_greylock()),
+        ("Thrive Capital",       lambda: curated_thrive_capital()),
+        ("Lerer Hippeau",        lambda: curated_lerer_hippeau()),
+        ("Brand Foundry",        lambda: curated_brand_foundry()),
+        ("CircleUp",             lambda: curated_circleup()),
+        ("Silas Capital",        lambda: curated_silas_capital()),
+        ("True Beauty Ventures", lambda: curated_true_beauty_ventures()),
     ]
 
     for name, fn in scrapers:
