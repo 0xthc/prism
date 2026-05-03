@@ -1,0 +1,46 @@
+name: Prism Daily Ingest
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 6am PT daily (1pm UTC)
+  workflow_dispatch:       # manual trigger
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Run Intel + Signals pipeline
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: python scripts/intel_signals_pipeline.py
+
+  portfolio:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # manual only (not daily)
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Run portfolio scraper
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: python scripts/scrape_portfolios.py
