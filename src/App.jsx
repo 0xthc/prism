@@ -503,122 +503,15 @@ function FundCards({ deals }) {
   )
 }
 
-function LandscapeTab({ metrics, deals, signals, onAddDeal }) {
-  const [view, setView] = useState('ranked')
+function LandscapeTab({ deals, onAddDeal }) {
   const [portfolioView, setPortfolioView] = useState('all')
-  const [showFunds, setShowFunds] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [sortKey, setSortKey] = useState('change')
-  const [sortDir, setSortDir] = useState(-1)
-
-  const heatingCats = useMemo(() => signals.filter(s=>s.maturity==='heating').map(s=>norm(s.category)), [signals])
-
-  const sortedMetrics = useMemo(() => {
-    return [...metrics].sort((a,b) => {
-      let va, vb
-      if (sortKey==='change') { va=a.share_pct-a.prev_share_pct; vb=b.share_pct-b.prev_share_pct }
-      else if (sortKey==='share') { va=a.share_pct; vb=b.share_pct }
-      else if (sortKey==='deals') { va=a.deal_count; vb=b.deal_count }
-      else { va=a.category; vb=b.category; return sortDir*(va<vb?-1:va>vb?1:0) }
-      return sortDir*(va-vb)
-    })
-  }, [metrics, sortKey, sortDir])
-
-  const alerts = useMemo(() => metrics.filter(m => m.share_pct >= m.prev_share_pct*2.5 && m.share_pct > 5), [metrics])
-
-  const whitespace = useMemo(() => {
-    const highOpp = [], consensus = []
-    metrics.forEach(m => {
-      const mn = norm(m.category)
-      const hasHeating = heatingCats.some(hc => mn.includes(hc) || hc.includes(mn))
-      if (!hasHeating) return
-      if (m.saturation_status==='cold'||m.saturation_status==='thinning') highOpp.push(m.category)
-      if (m.rotation_status==='rotating_in') consensus.push(m.category)
-    })
-    return { highOpp, consensus }
-  }, [metrics, heatingCats])
-
-  const SortHeader = ({ k, label }) => (
-    <th onClick={()=>{ setSortDir(sortKey===k?-sortDir:-1); setSortKey(k) }}
-      style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', cursor:'pointer', userSelect:'none', borderBottom:'1px solid #e8e8e4' }}>
-      {label}{sortKey===k ? (sortDir<0?' ↓':' ↑') : ''}
-    </th>
-  )
 
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div style={{ display:'flex', border:'1px solid #ddd', borderRadius:5, overflow:'hidden' }}>
-          {['ranked','whitespace'].map(v=>(
-            <button key={v} onClick={()=>setView(v)}
-              style={{ padding:'5px 14px', border:'none', cursor:'pointer', fontSize:12,
-                background: view===v ? '#1a1a1a' : '#fff', color: view===v ? '#fff' : '#555' }}>
-              {v==='ranked'?'Ranked':'White Space'}
-            </button>
-          ))}
-        </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:16 }}>
         <button style={btnPrimary} onClick={()=>setShowModal(true)}>+ Add Deal</button>
       </div>
-
-      {/* Rotation alerts */}
-      {alerts.map(a=>(
-        <div key={a.id} style={{ background:'#e8f5e9', border:'1px solid #a5d6a7', borderRadius:8, padding:'12px 16px', marginBottom:12, fontSize:13 }}>
-          <strong>Rotating In: {a.category}</strong> — {a.prev_share_pct}% → {a.share_pct}% of tracked-fund deployment
-        </div>
-      ))}
-
-      {view==='ranked' && (
-        <div style={{ background:'#fff', border:'1px solid #e8e8e4', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
-            <thead>
-              <tr style={{ background:'#fafafa' }}>
-                <SortHeader k="category" label="Category" />
-                <SortHeader k="deals" label="Deals" />
-                <SortHeader k="share" label="Share %" />
-                <SortHeader k="change" label="Change" />
-                <th style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', borderBottom:'1px solid #e8e8e4' }}>Saturation</th>
-                <th style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', borderBottom:'1px solid #e8e8e4' }}>Rotation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedMetrics.map((m,i)=>{
-                const change = m.share_pct - m.prev_share_pct
-                return (
-                  <tr key={m.id} style={{ borderBottom: i<sortedMetrics.length-1 ? '1px solid #f4f4f1' : 'none' }}>
-                    <td style={{ padding:'10px 8px', fontSize:13, fontWeight:500 }}>{m.category}</td>
-                    <td style={{ padding:'10px 8px', fontSize:13 }}>{m.deal_count ?? '—'}</td>
-                    <td style={{ padding:'10px 8px', fontSize:13 }}>{m.share_pct}%</td>
-                    <td style={{ padding:'10px 8px', fontSize:13, color: change>0?'#2e7d32':'#b71c1c', fontWeight:600 }}>
-                      {change>0?'+':''}{change}pp
-                    </td>
-                    <td style={{ padding:'10px 8px' }}><Tag type="saturation" value={m.saturation_status} /></td>
-                    <td style={{ padding:'10px 8px' }}><Tag type="rotation" value={m.rotation_status?.replace('_',' ')} /></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {view==='whitespace' && (
-        <div style={{ marginBottom:24 }}>
-          <div style={{ marginBottom:16 }}>
-            <h4 style={{ fontSize:13, fontWeight:600, margin:'0 0 8px' }}>High Opportunity</h4>
-            <p style={{ fontSize:12, color:'#888', margin:'0 0 10px' }}>Heating signal in Signals tab — Cold or Thinning in Landscape</p>
-            {whitespace.highOpp.length > 0
-              ? whitespace.highOpp.map(c=><span key={c} style={{...TAG.base,background:'#e3f2fd',color:'#1565c0',marginBottom:4}}>{c}</span>)
-              : <p style={{ fontSize:12, color:'#aaa' }}>No matches yet — add more data to both tabs.</p>}
-          </div>
-          <div>
-            <h4 style={{ fontSize:13, fontWeight:600, margin:'0 0 8px' }}>Consensus Forming</h4>
-            <p style={{ fontSize:12, color:'#888', margin:'0 0 10px' }}>Heating signal AND Rotating In in Landscape</p>
-            {whitespace.consensus.length > 0
-              ? whitespace.consensus.map(c=><span key={c} style={{...TAG.base,background:'#e8f5e9',color:'#2e7d32',marginBottom:4}}>{c}</span>)
-              : <p style={{ fontSize:12, color:'#aaa' }}>No matches yet.</p>}
-          </div>
-        </div>
-      )}
 
       {/* Portfolio section — toggle All / By Fund */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
@@ -798,7 +691,7 @@ export default function App() {
       <div style={{ maxWidth:860, margin:'0 auto', padding:'24px 24px 60px' }}>
         {tab==='signals' && <SignalsTab signals={signals} onAdd={addSignal} />}
         {tab==='intel' && <IntelTab items={intel} signals={signals} onAdd={addIntel} />}
-        {tab==='landscape' && <LandscapeTab metrics={metrics} deals={deals} signals={signals} onAddDeal={addDeal} />}
+        {tab==='landscape' && <LandscapeTab deals={deals} onAddDeal={addDeal} />}
       </div>
 
       {toast && <Toast msg={toast} onDone={()=>setToast(null)} />}
