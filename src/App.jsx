@@ -544,7 +544,7 @@ function LandscapeTab({ metrics, deals, signals, onAddDeal }) {
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
             <tr style={{ background:'#fafafa' }}>
-              {['Date','Fund','Company','Category','Stage','Size'].map(h=>(
+              {['Fund','Company','Category','Stage','Size'].map(h=>(
                 <th key={h} style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', borderBottom:'1px solid #e8e8e4' }}>{h}</th>
               ))}
             </tr>
@@ -552,9 +552,13 @@ function LandscapeTab({ metrics, deals, signals, onAddDeal }) {
           <tbody>
             {deals.map((d,i)=>(
               <tr key={d.id} style={{ borderBottom: i<deals.length-1 ? '1px solid #f4f4f1' : 'none' }}>
-                <td style={{ padding:'8px', fontSize:12, color:'#888' }}>{fmt(d.deal_date)}</td>
                 <td style={{ padding:'8px', fontSize:12 }}>{d.fund_name}</td>
-                <td style={{ padding:'8px', fontSize:13, fontWeight:500 }}>{d.company_name}</td>
+                <td style={{ padding:'8px', fontSize:13, fontWeight:500 }}>
+                  {d.company_name}
+                  {d.data_source === 'rss' && d.deal_date && (
+                    <span style={{ marginLeft:6, fontSize:11, color:'#888' }}>{fmt(d.deal_date)}</span>
+                  )}
+                </td>
                 <td style={{ padding:'8px', fontSize:12 }}>{d.category}</td>
                 <td style={{ padding:'8px', fontSize:12 }}>{d.round_stage}</td>
                 <td style={{ padding:'8px', fontSize:12 }}>{d.round_size_m ? `$${d.round_size_m}M` : '—'}</td>
