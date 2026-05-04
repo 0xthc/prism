@@ -422,8 +422,90 @@ function IntelModal({ onClose, onAdd }) {
 
 
 // ── LANDSCAPE TAB ─────────────────────────────────────────────────────────────
+function FundCards({ deals }) {
+  const [expanded, setExpanded] = useState({})
+
+  const byFund = useMemo(() => {
+    const map = {}
+    deals.forEach(d => {
+      if (!map[d.fund_name]) map[d.fund_name] = []
+      map[d.fund_name].push(d)
+    })
+    return Object.entries(map).sort((a,b) => b[1].length - a[1].length)
+  }, [deals])
+
+  const catColor = (cat) => {
+    const palette = {
+      'Beauty & Skincare': '#f3e5f5',
+      'Food & Beverage': '#e8f5e9',
+      'Fashion & Apparel': '#fff3e0',
+      'Functional Food & Bev': '#e0f2f1',
+      'Consumer Health & Telehealth': '#e3f2fd',
+      'Fitness & Sports': '#fce4ec',
+      'Sustainability & Eco': '#f1f8e9',
+      'Consumer Tech & Wearables': '#e8eaf6',
+      'Pet': '#fff8e1',
+      'Baby & Family': '#fce4ec',
+      'Personal Care & Hygiene': '#f9fbe7',
+      'Home & Living': '#efebe9',
+      'Wellness & Supplements': '#e0f7fa',
+    }
+    return palette[cat] || '#f5f5f5'
+  }
+
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
+      {byFund.map(([fund, companies]) => {
+        const isOpen = expanded[fund]
+        const catCounts = {}
+        companies.forEach(c => { catCounts[c.category] = (catCounts[c.category]||0)+1 })
+        const topCats = Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).slice(0,4)
+        const total = companies.length
+
+        return (
+          <div key={fund} style={{ background:'#fff', border:'1px solid #e8e8e4', borderRadius:8, overflow:'hidden' }}>
+            <div onClick={()=>setExpanded(e=>({...e,[fund]:!e[fund]}))}
+              style={{ padding:'12px 14px', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div>
+                <div style={{ fontWeight:600, fontSize:13, marginBottom:6 }}>{fund}</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                  {topCats.map(([cat, count]) => (
+                    <span key={cat} style={{ fontSize:10, padding:'2px 7px', borderRadius:10, background: catColor(cat), color:'#333' }}>
+                      {cat} · {Math.round(count/total*100)}%
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign:'right', flexShrink:0, marginLeft:8 }}>
+                <div style={{ fontSize:18, fontWeight:700, color:'#1a1a1a' }}>{total}</div>
+                <div style={{ fontSize:10, color:'#aaa' }}>companies</div>
+                <div style={{ fontSize:11, color:'#aaa', marginTop:4 }}>{isOpen ? '▲' : '▼'}</div>
+              </div>
+            </div>
+            {isOpen && (
+              <div style={{ borderTop:'1px solid #f4f4f1', maxHeight:260, overflowY:'auto' }}>
+                {companies.map((c,i) => (
+                  <div key={c.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'7px 14px', borderBottom: i<companies.length-1 ? '1px solid #f9f9f9':'none',
+                    fontSize:12 }}>
+                    <span style={{ fontWeight:500 }}>{c.company_name}</span>
+                    <span style={{ fontSize:10, padding:'2px 6px', borderRadius:8, background: catColor(c.category), color:'#555' }}>
+                      {c.category}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function LandscapeTab({ metrics, deals, signals, onAddDeal }) {
   const [view, setView] = useState('ranked')
+  const [portfolioView, setPortfolioView] = useState('all')
   const [showFunds, setShowFunds] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [sortKey, setSortKey] = useState('change')
@@ -538,35 +620,54 @@ function LandscapeTab({ metrics, deals, signals, onAddDeal }) {
         </div>
       )}
 
-      {/* Deal list */}
-      <h4 style={{ fontSize:13, fontWeight:600, margin:'0 0 10px' }}>Recent Deals</h4>
-      <div style={{ background:'#fff', border:'1px solid #e8e8e4', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
-        <table style={{ width:'100%', borderCollapse:'collapse' }}>
-          <thead>
-            <tr style={{ background:'#fafafa' }}>
-              {['Fund','Company','Category','Stage','Size'].map(h=>(
-                <th key={h} style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', borderBottom:'1px solid #e8e8e4' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {deals.map((d,i)=>(
-              <tr key={d.id} style={{ borderBottom: i<deals.length-1 ? '1px solid #f4f4f1' : 'none' }}>
-                <td style={{ padding:'8px', fontSize:12 }}>{d.fund_name}</td>
-                <td style={{ padding:'8px', fontSize:13, fontWeight:500 }}>
-                  {d.company_name}
-                  {d.data_source === 'rss' && d.deal_date && (
-                    <span style={{ marginLeft:6, fontSize:11, color:'#888' }}>{fmt(d.deal_date)}</span>
-                  )}
-                </td>
-                <td style={{ padding:'8px', fontSize:12 }}>{d.category}</td>
-                <td style={{ padding:'8px', fontSize:12 }}>{d.round_stage}</td>
-                <td style={{ padding:'8px', fontSize:12 }}>{d.round_size_m ? `$${d.round_size_m}M` : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Portfolio section — toggle All / By Fund */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+        <h4 style={{ fontSize:13, fontWeight:600, margin:0 }}>Portfolio</h4>
+        <div style={{ display:'flex', border:'1px solid #ddd', borderRadius:5, overflow:'hidden' }}>
+          {['all','by-fund'].map(v=>(
+            <button key={v} onClick={()=>setPortfolioView(v)}
+              style={{ padding:'4px 12px', border:'none', cursor:'pointer', fontSize:11,
+                background: portfolioView===v ? '#1a1a1a' : '#fff',
+                color: portfolioView===v ? '#fff' : '#555' }}>
+              {v==='all' ? 'All Funds' : 'By Fund'}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {portfolioView==='all' && (
+        <div style={{ background:'#fff', border:'1px solid #e8e8e4', borderRadius:8, overflow:'hidden', marginBottom:24 }}>
+          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <thead>
+              <tr style={{ background:'#fafafa' }}>
+                {['Fund','Company','Category','Stage','Size'].map(h=>(
+                  <th key={h} style={{ textAlign:'left', fontSize:11, color:'#888', fontWeight:500, padding:'6px 8px', borderBottom:'1px solid #e8e8e4' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {deals.map((d,i)=>(
+                <tr key={d.id} style={{ borderBottom: i<deals.length-1 ? '1px solid #f4f4f1' : 'none' }}>
+                  <td style={{ padding:'8px', fontSize:12 }}>{d.fund_name}</td>
+                  <td style={{ padding:'8px', fontSize:13, fontWeight:500 }}>
+                    {d.company_name}
+                    {d.data_source === 'rss' && d.deal_date && (
+                      <span style={{ marginLeft:6, fontSize:11, color:'#888' }}>{fmt(d.deal_date)}</span>
+                    )}
+                  </td>
+                  <td style={{ padding:'8px', fontSize:12 }}>{d.category}</td>
+                  <td style={{ padding:'8px', fontSize:12 }}>{d.round_stage}</td>
+                  <td style={{ padding:'8px', fontSize:12 }}>{d.round_size_m ? `$${d.round_size_m}M` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {portfolioView==='by-fund' && (
+        <FundCards deals={deals} />
+      )}
 
       {/* Funds panel */}
       <button style={btnSecondary} onClick={()=>setShowFunds(v=>!v)}>
