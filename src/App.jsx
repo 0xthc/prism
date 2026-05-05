@@ -506,6 +506,7 @@ function FundCards({ deals }) {
 function LandscapeTab({ deals, onAddDeal }) {
   const [portfolioView, setPortfolioView] = useState('all')
   const [showModal, setShowModal] = useState(false)
+  const [showFunds, setShowFunds] = useState(false)
 
   return (
     <div>

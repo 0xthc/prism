@@ -1,0 +1,37 @@
+{
+  "active_context": [
+    {
+      "order": 3,
+      "path": "_index.md",
+      "tokens": 315,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "product/_index.md",
+      "tokens": 252,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "product/prism_market/_index.md",
+      "tokens": 190,
+      "type": "summary"
+    },
+    {
+      "importance": 50,
+      "path": "product/prism_market/market_tab_redesign.md",
+      "tokens": 265,
+      "type": "context"
+    }
+  ],
+  "generated_at": "2026-03-16T23:54:53.862Z",
+  "lane_tokens": {
+    "contexts": 265,
+    "stubs": 0,
+    "summaries": 757
+  },
+  "source_fingerprint": "8612de8583f60c93bf0a5a401e005246300707a001053296896c940bb5cbaef8",
+  "total_tokens": 1022,
+  "version": 1
+}
