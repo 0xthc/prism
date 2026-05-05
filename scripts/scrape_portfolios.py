@@ -88,21 +88,33 @@ If you cannot find any companies, return: []"""
 
 def classify_company(company_name, fund_name):
     cats = "\n".join(f"- {c}" for c in CATEGORIES)
-    prompt = f"""Classify the consumer brand "{company_name}" (portfolio company of {fund_name}) into exactly ONE of these categories:
+    prompt = f"""You are classifying consumer brands for a consumer VC intelligence tool.
+
+The company "{company_name}" is a portfolio company of {fund_name}.
+
+First, determine: is this a CONSUMER brand (sells products/services to end consumers, D2C, CPG, retail, wellness, beauty, food, fashion, etc.)?
+
+If it is B2B software, developer tools, enterprise SaaS, payments infrastructure, or a wholesale/B2B platform — return exactly: SKIP
+
+If it IS a consumer brand, classify it into exactly ONE of these categories:
 {cats}
 
-Return ONLY the category name, exactly as written above, nothing else."""
+Return ONLY the category name exactly as written above, or SKIP. Nothing else."""
     
     try:
         result = gemini(prompt)
+        result = result.strip()
+        # Skip B2B companies
+        if result.upper() == "SKIP" or "SKIP" in result.upper()[:10]:
+            return None
         # Find best match
         for cat in CATEGORIES:
             if cat.lower() in result.lower():
                 return cat
-        return "Food & Beverage"  # fallback
+        return None  # unknown — skip rather than misclassify
     except Exception as e:
         print(f"  classify error for {company_name}: {e}")
-        return "Food & Beverage"
+        return None
 
 def insert_deals(deals):
     resp = requests.post(
@@ -145,6 +157,9 @@ def main():
             time.sleep(1.5)  # rate limit: ~40 req/min on free tier
             try:
                 category = classify_company(company, fund["name"])
+                if category is None:
+                    print(f"  ⊘ {company} → skipped (B2B or unclassifiable)")
+                    continue
                 deal = {
                     "fund_name": fund["name"],
                     "company_name": company,
